@@ -14,34 +14,8 @@ services:
         value: prod
       - key: DB_TYPE
         value: postgresql
-      - key: DATABASE_URL
-        fromDatabase:
-          name: rail-db
-          property: connectionString
-      - key: DB_HOST
-        fromDatabase:
-          name: rail-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: rail-db
-          property: port
-      - key: DB_USER
-        fromDatabase:
-          name: rail-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: rail-db
-          property: password
-      - key: DB_NAME
-        fromDatabase:
-          name: rail-db
-          property: database
-
-databases:
-  - name: rail-db
-    plan: free
-    region: oregon
+      # Note: DATABASE_URL must be set manually in Render dashboard
+      # Link your existing PostgreSQL database (voice_iq) to this service
+      # The DATABASE_URL will be automatically set when you link the database
 
 
