@@ -8,7 +8,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, OperationalError
 from sqlalchemy import text
 
 from app.core.config import settings
@@ -69,10 +69,23 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    user: User | None = db.query(User).filter(User.username == username).first()
-    if user is None:
-        raise credentials_exception
-    return user
+    try:
+        user: User | None = db.query(User).filter(User.username == username).first()
+        if user is None:
+            raise credentials_exception
+        return user
+    except OperationalError as e:
+        logger.error(f"Database connection error in get_current_user: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database connection error. Please try again later."
+        )
+    except SQLAlchemyError as e:
+        logger.error(f"Database error in get_current_user: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database error. Please try again later."
+        )
 
 
 def require_role(*allowed_roles: str):
@@ -100,11 +113,26 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)) -> UserRead:
         return UserRead(id=user.id, username=user.username, role=user.role)
     except HTTPException:
         raise
+    except OperationalError as e:
+        error_msg = str(e)
+        logger.error(f"Database connection error during signup: {error_msg}", exc_info=True)
+        if "could not connect" in error_msg.lower() or "connection refused" in error_msg.lower():
+            detail = f"Database server is not reachable. Please check if the database is running at {settings.DB_HOST}:{settings.DB_PORT}"
+        elif "authentication failed" in error_msg.lower():
+            detail = "Database authentication failed. Please check your database credentials."
+        elif "does not exist" in error_msg.lower():
+            detail = f"Database '{settings.DB_NAME}' does not exist. Please create it first."
+        else:
+            detail = f"Database connection error: {error_msg}"
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=detail
+        )
     except SQLAlchemyError as e:
         logger.error(f"Database error during signup: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Database connection error. Please try again later."
+            detail=f"Database error: {str(e)}"
         )
     except Exception as e:
         logger.error(f"Unexpected error during signup: {str(e)}", exc_info=True)
@@ -124,11 +152,26 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         return Token(access_token=access_token)
     except HTTPException:
         raise
+    except OperationalError as e:
+        error_msg = str(e)
+        logger.error(f"Database connection error during login: {error_msg}", exc_info=True)
+        if "could not connect" in error_msg.lower() or "connection refused" in error_msg.lower():
+            detail = f"Database server is not reachable. Please check if the database is running at {settings.DB_HOST}:{settings.DB_PORT}"
+        elif "authentication failed" in error_msg.lower():
+            detail = "Database authentication failed. Please check your database credentials."
+        elif "does not exist" in error_msg.lower():
+            detail = f"Database '{settings.DB_NAME}' does not exist. Please create it first."
+        else:
+            detail = f"Database connection error: {error_msg}"
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=detail
+        )
     except SQLAlchemyError as e:
         logger.error(f"Database error during login: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Database connection error. Please try again later."
+            detail=f"Database error: {str(e)}"
         )
     except Exception as e:
         logger.error(f"Unexpected error during login: {str(e)}", exc_info=True)
@@ -144,12 +187,15 @@ def read_me(current_user: User = Depends(get_current_user)) -> UserRead:
 
 
 @router.get("/health")
-def health_check(db: Session = Depends(get_db)) -> dict:
+def health_check() -> dict:
     """Health check endpoint to verify database connectivity"""
+    from app.db.session import test_connection
     try:
-        # Simple query to test database connection
-        db.execute(text("SELECT 1"))
-        return {"status": "healthy", "database": "connected"}
+        connection_ok, error_msg = test_connection()
+        if connection_ok:
+            return {"status": "healthy", "database": "connected"}
+        else:
+            return {"status": "unhealthy", "database": "disconnected", "error": error_msg}
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}", exc_info=True)
         return {"status": "unhealthy", "database": "disconnected", "error": str(e)}

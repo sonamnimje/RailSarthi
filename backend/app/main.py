@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api.routes import ingest, optimizer, simulator, overrides, ws, users, reports, train_logs
-from .db.session import engine, SessionLocal
+from .db.session import engine, SessionLocal, test_connection
 from .db.models import Base
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -64,6 +64,16 @@ def create_app() -> FastAPI:
 	# Ensure database tables exist on startup
 	@app.on_event("startup")
 	def on_startup() -> None:
+		# Test database connection first
+		logger.info(f"Testing database connection to {settings.DB_TYPE} database...")
+		connection_ok, error_msg = test_connection()
+		if not connection_ok:
+			logger.error(f"Database connection test failed: {error_msg}")
+			logger.error("Application will continue to start, but database operations may fail.")
+			logger.error(f"Database URI: {settings.sync_database_uri.replace(settings.DB_PASSWORD, '***') if settings.DB_PASSWORD else settings.sync_database_uri}")
+		else:
+			logger.info("Database connection test successful")
+		
 		# If using Postgres on Render, attempt a one-time SQLite -> Postgres migration
 		# This is safe to run repeatedly; the migration is idempotent and will skip if dest has data
 		if settings.DB_TYPE == "postgresql" and migrate_sqlite_to_pg is not None:
