@@ -117,12 +117,44 @@ export async function login(username: string, password: string) {
 	const form = new URLSearchParams()
 	form.append('username', username)
 	form.append('password', password)
-	const res = await fetch(`${apiBaseUrl}/api/users/login`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-		body: form.toString(),
-	})
-	if (!res.ok) throw new Error('Login failed')
+	
+	let res: Response
+	try {
+		res = await fetch(`${apiBaseUrl}/api/users/login`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body: form.toString(),
+		})
+	} catch (error: any) {
+		// Network error (connection refused, timeout, etc.)
+		if (error.name === 'TypeError' && error.message.includes('fetch')) {
+			throw new Error('Cannot connect to server. Please check if the backend is running.')
+		}
+		throw new Error(`Network error: ${error.message}`)
+	}
+	
+	if (!res.ok) {
+		let errorMessage = 'Login failed'
+		try {
+			const errorData = await res.json()
+			if (errorData.detail) {
+				errorMessage = errorData.detail
+			}
+		} catch {
+			// If response is not JSON, use status text
+			if (res.status === 502) {
+				errorMessage = 'Server is temporarily unavailable (502 Bad Gateway). Please try again later.'
+			} else if (res.status === 503) {
+				errorMessage = 'Service unavailable. Database connection error.'
+			} else if (res.status === 500) {
+				errorMessage = 'Internal server error. Please try again later.'
+			} else {
+				errorMessage = `Login failed: ${res.statusText} (${res.status})`
+			}
+		}
+		throw new Error(errorMessage)
+	}
+	
 	const data = (await res.json()) as { access_token: string; token_type: string }
 	localStorage.setItem('token', data.access_token)
 	return data

@@ -5,9 +5,18 @@ from .api.routes import ingest, optimizer, simulator, overrides, ws, users, repo
 from .db.session import engine, SessionLocal
 from .db.models import Base
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 import os
+import logging
 
 from .core.config import settings
+
+# Configure logging
+logging.basicConfig(
+	level=logging.INFO,
+	format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # When running from backend/ (Render rootDir), this import is available
 try:
@@ -69,7 +78,14 @@ def create_app() -> FastAPI:
 				pass
 
 		# Ensure tables exist on current engine
-		Base.metadata.create_all(bind=engine)
+		try:
+			Base.metadata.create_all(bind=engine)
+			logger.info("Database tables created/verified successfully")
+		except SQLAlchemyError as e:
+			logger.error(f"Failed to create database tables: {str(e)}", exc_info=True)
+			# Don't block startup, but log the error
+		except Exception as e:
+			logger.error(f"Unexpected error during table creation: {str(e)}", exc_info=True)
 
 		# Optional: seed demo data once if enabled and database appears empty
 		if os.getenv("SEED_ON_STARTUP", "false").lower() == "true":
@@ -97,12 +113,19 @@ def create_app() -> FastAPI:
 				# Never block startup on seed issues
 				pass
 		# Lightweight migration: ensure overrides.ai_action exists (SQLite-safe)
-		with engine.connect() as conn:
-			try:
-				conn.execute(text("ALTER TABLE overrides ADD COLUMN ai_action TEXT"))
-			except Exception:
-				# Column likely exists; ignore
-				pass
+		try:
+			with engine.connect() as conn:
+				try:
+					conn.execute(text("ALTER TABLE overrides ADD COLUMN ai_action TEXT"))
+					conn.commit()
+					logger.info("Migration: added ai_action column to overrides table")
+				except Exception:
+					# Column likely exists; ignore
+					pass
+		except SQLAlchemyError as e:
+			logger.warning(f"Could not run migration check: {str(e)}")
+		except Exception as e:
+			logger.warning(f"Unexpected error during migration check: {str(e)}")
 
 	@app.get("/health")
 	def health() -> dict:

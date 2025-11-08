@@ -171,6 +171,10 @@ export default function LogsPage() {
 
 			{loading ? (
 				<div className="text-center py-8 text-gray-500">Loading...</div>
+			) : (viewMode === 'schedules' && schedules.length === 0) || (viewMode === 'logs' && logs.length === 0) ? (
+				<div className="text-center py-8 text-gray-500 rounded-lg border border-gray-300 bg-white shadow-sm">
+					No data found for the selected filters
+				</div>
 			) : (
 				<div className="rounded-lg border border-gray-300 overflow-hidden bg-white shadow-sm">
 					{viewMode === 'schedules' && (
@@ -241,12 +245,6 @@ export default function LogsPage() {
 
 					{/* Timeline view removed */}
 				</div>
-			)}
-
-			{!loading && schedules.length === 0 && logs.length === 0 && (
-				<div className="text-center py-8 text-gray-500">
-					No data found for the selected filters
-			</div>
 			)}
 		</div>
 	)

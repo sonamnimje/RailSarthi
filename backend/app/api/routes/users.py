@@ -1,5 +1,6 @@
 from datetime import timedelta, datetime, timezone
 from typing import Optional
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -7,10 +8,14 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
 
 from app.core.config import settings
 from app.db.session import get_db
 from app.db.models import User
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
@@ -80,31 +85,73 @@ def require_role(*allowed_roles: str):
 
 @router.post("/signup", response_model=UserRead)
 def signup(payload: UserCreate, db: Session = Depends(get_db)) -> UserRead:
-    existing = db.query(User).filter(User.username == payload.username).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Username already exists")
-    user = User(
-        username=payload.username,
-        hashed_password=hash_password(payload.password),
-        role=payload.role,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return UserRead(id=user.id, username=user.username, role=user.role)
+    try:
+        existing = db.query(User).filter(User.username == payload.username).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Username already exists")
+        user = User(
+            username=payload.username,
+            hashed_password=hash_password(payload.password),
+            role=payload.role,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return UserRead(id=user.id, username=user.username, role=user.role)
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Database error during signup: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database connection error. Please try again later."
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during signup: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred. Please try again later."
+        )
 
 
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)) -> Token:
-    user: User | None = db.query(User).filter(User.username == form_data.username).first()
-    if user is None or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
-    access_token = create_access_token(str(user.username), user.role)
-    return Token(access_token=access_token)
+    try:
+        user: User | None = db.query(User).filter(User.username == form_data.username).first()
+        if user is None or not verify_password(form_data.password, user.hashed_password):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
+        access_token = create_access_token(str(user.username), user.role)
+        return Token(access_token=access_token)
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Database error during login: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database connection error. Please try again later."
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during login: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred. Please try again later."
+        )
 
 
 @router.get("/me", response_model=UserRead)
 def read_me(current_user: User = Depends(get_current_user)) -> UserRead:
     return UserRead(id=current_user.id, username=current_user.username, role=current_user.role)
+
+
+@router.get("/health")
+def health_check(db: Session = Depends(get_db)) -> dict:
+    """Health check endpoint to verify database connectivity"""
+    try:
+        # Simple query to test database connection
+        db.execute(text("SELECT 1"))
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}", exc_info=True)
+        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
 
 

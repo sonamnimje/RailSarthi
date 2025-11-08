@@ -48,8 +48,13 @@ def seed_data():
         
         for i, train in enumerate(trains):
             for j, station in enumerate(stations):
-                # Create arrival and departure times
-                base_time = now + timedelta(hours=i*2 + j*0.5)
+                # Create arrival and departure times within the last 24 hours and some in the future
+                # Mix of past (for logs) and future (for upcoming schedules)
+                hours_offset = random.choice([
+                    -random.uniform(0, 24),  # Past 24 hours
+                    random.uniform(0, 12)     # Next 12 hours
+                ])
+                base_time = now + timedelta(hours=hours_offset + i*0.5 + j*0.2)
                 arrival_time = base_time
                 departure_time = base_time + timedelta(minutes=5)
                 
@@ -77,11 +82,13 @@ def seed_data():
         for schedule in schedules:
             db.add(schedule)
         
-        # Create sample train logs
+        # Create sample train logs (within last 24 hours so they show up in the logs page)
         logs = []
         for i, train in enumerate(trains):
             for j, station in enumerate(stations):
-                base_time = now + timedelta(hours=i*2 + j*0.5)
+                # Generate timestamps within the last 24 hours
+                hours_ago = random.uniform(0, 24)
+                base_time = now - timedelta(hours=hours_ago, minutes=random.randint(0, 59))
                 
                 # Arrival log
                 arrival_log = TrainLog(
@@ -94,7 +101,8 @@ def seed_data():
                     delay_minutes=random.randint(0, 10) if random.random() < 0.3 else 0,
                     status="arrived",
                     platform=f"P{j+1}",
-                    notes=f"Arrived at {station.name}"
+                    notes=f"Arrived at {station.name}",
+                    timestamp=base_time + timedelta(minutes=random.randint(0, 10))
                 )
                 logs.append(arrival_log)
                 
@@ -109,17 +117,19 @@ def seed_data():
                     delay_minutes=random.randint(0, 5) if random.random() < 0.2 else 0,
                     status="departed",
                     platform=f"P{j+1}",
-                    notes=f"Departed from {station.name}"
+                    notes=f"Departed from {station.name}",
+                    timestamp=base_time + timedelta(minutes=5 + random.randint(0, 5))
                 )
                 logs.append(departure_log)
         
         for log in logs:
             db.add(log)
         
-        # Create sample train positions
+        # Create sample train positions (within last 24 hours)
         positions = []
         for i, train in enumerate(trains):
             for j in range(10):  # 10 position updates per train
+                hours_ago = random.uniform(0, 24)
                 position = TrainPosition(
                     train_id=train.id,
                     section_id=f"S{(j % 3) + 1}",
@@ -127,7 +137,7 @@ def seed_data():
                     actual_block_id=f"B{j}",
                     location_km=float(j * 5.2),
                     speed_kmph=float(random.randint(40, 120)),
-                    timestamp=now + timedelta(hours=i*2, minutes=j*10)
+                    timestamp=now - timedelta(hours=hours_ago, minutes=j*10)
                 )
                 positions.append(position)
         
