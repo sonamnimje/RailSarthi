@@ -170,15 +170,42 @@ export async function fetchMe() {
 
 
 export async function signup(username: string, password: string, role: 'controller' | 'admin' = 'controller') {
-	const res = await fetch(`${apiBaseUrl}/api/users/signup`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ username, password, role }),
-	})
-	if (!res.ok) {
-		const msg = await res.text()
-		throw new Error(msg || 'Signup failed')
+	let res: Response
+	try {
+		res = await fetch(`${apiBaseUrl}/api/users/signup`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ username, password, role }),
+		})
+	} catch (error: any) {
+		// Common browser message when CORS or server is unreachable
+		if (error.name === 'TypeError' && typeof error.message === 'string' && error.message.includes('fetch')) {
+			throw new Error('Cannot connect to server. Please check if the backend is running and CORS is configured.')
+		}
+		throw new Error(`Network error: ${error?.message || 'Unknown error'}`)
 	}
+
+	if (!res.ok) {
+		// Try to extract a helpful message
+		try {
+			const maybeJson = await res.json()
+			const detail = (maybeJson && (maybeJson.detail || maybeJson.message)) as string | undefined
+			if (detail) {
+				throw new Error(detail)
+			}
+		} catch {
+			// Fallbacks for common statuses
+			if (res.status === 502) {
+				throw new Error('Server is temporarily unavailable (502 Bad Gateway). Please try again later.')
+			} else if (res.status === 503) {
+				throw new Error('Service unavailable. Database connection error.')
+			} else if (res.status === 500) {
+				throw new Error('Internal server error. Please try again later.')
+			}
+		}
+		throw new Error(`Signup failed: ${res.statusText} (${res.status})`)
+	}
+
 	return (await res.json()) as { id: number; username: string; role: string }
 }
 

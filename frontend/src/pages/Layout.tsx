@@ -28,7 +28,7 @@ export default function Layout() {
 					<NavLink to="/app/settings" className={({ isActive }) => isActive ? 'font-bold bg-blue-600 text-white rounded px-3 py-2 shadow transition' : 'text-blue-700 hover:bg-blue-100 hover:text-blue-900 rounded px-3 py-2 transition'}>Settings</NavLink>
 				</nav>
 				<div className="flex justify-end">
-					<button className="ml-4 px-3 py-1 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition" onClick={signOut}>Sign out</button>
+					<button className="ml-4 px-3 py-1 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition" onClick={signOut}>Log out</button>
 				</div>
 			</header>
 			<Outlet />
