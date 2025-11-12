@@ -3,15 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import KPIsPanel from '../components/KPIsPanel'
 import SmartRecommendations from '../components/SmartRecommendations'
 import ForecastsPanel from '../components/ForecastsPanel'
-import TimelineChart from '../components/TimelineChart'
 import OverrideModal from '../components/OverrideModal'
-import { fetchKpis, fetchRecommendations, type Recommendation, fetchTimelineData, type TimelineData, applyOverride } from '../lib/api'
+import { fetchKpis, fetchRecommendations, type Recommendation, applyOverride } from '../lib/api'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
   const [kpis, setKpis] = useState<{ throughput_per_hour?: number; avg_delay_minutes?: number; congestion_index?: number; on_time_percentage?: number } | null>(null)
   const [recs, setRecs] = useState<Recommendation[]>([])
-  const [timeline, setTimeline] = useState<TimelineData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [actionMsg, setActionMsg] = useState<string | null>(null)
@@ -23,15 +21,13 @@ export default function DashboardPage() {
       setLoading(true)
       setError(null)
       try {
-        const [kpiResp, recResp, timelineResp] = await Promise.all([
+        const [kpiResp, recResp] = await Promise.all([
           fetchKpis().catch(() => null),
-          fetchRecommendations({ section_id: 'S1', lookahead_minutes: 30 }).catch(() => ({ recommendations: [] as Recommendation[] } as any)),
-          fetchTimelineData({ section_id: 'S1', hours: 6 }).catch(() => null)
+          fetchRecommendations({ section_id: 'S1', lookahead_minutes: 30 }).catch(() => ({ recommendations: [] as Recommendation[] } as any))
         ])
         if (cancelled) return
         setKpis(kpiResp)
         setRecs((recResp?.recommendations as Recommendation[]) || [])
-        setTimeline(timelineResp)
       } catch (e: any) {
         if (!cancelled) setError(e?.message || 'Failed to load dashboard')
       } finally {
@@ -47,87 +43,6 @@ export default function DashboardPage() {
     { icon: '⚠️', message: 'High chance of bottleneck at Section B (3 trains converging).' },
     { icon: '🌧️', message: 'Weather may cause minor delays near Station C.' }
   ]), [])
-
-  const mockTimelineData = useMemo(() => {
-    const now = new Date()
-    const startTime = new Date(now.getTime() - 2 * 60 * 60 * 1000) // 2 hours ago
-    const endTime = new Date(now.getTime() + 4 * 60 * 60 * 1000) // 4 hours from now
-    
-    return {
-      timeline: {
-        'T001': [
-          {
-            station_id: 'ST001',
-            section_id: 'S1',
-            event_type: 'departure',
-            planned_time: new Date(startTime.getTime() + 30 * 60 * 1000).toISOString(),
-            actual_time: new Date(startTime.getTime() + 35 * 60 * 1000).toISOString(),
-            delay_minutes: 5,
-            status: 'departed',
-            platform: 'P1'
-          },
-          {
-            station_id: 'ST002',
-            section_id: 'S1',
-            event_type: 'arrival',
-            planned_time: new Date(startTime.getTime() + 90 * 60 * 1000).toISOString(),
-            actual_time: new Date(startTime.getTime() + 95 * 60 * 1000).toISOString(),
-            delay_minutes: 5,
-            status: 'arrived',
-            platform: 'P2'
-          }
-        ],
-        'T002': [
-          {
-            station_id: 'ST001',
-            section_id: 'S1',
-            event_type: 'departure',
-            planned_time: new Date(startTime.getTime() + 60 * 60 * 1000).toISOString(),
-            actual_time: new Date(startTime.getTime() + 75 * 60 * 1000).toISOString(),
-            delay_minutes: 15,
-            status: 'departed',
-            platform: 'P3'
-          },
-          {
-            station_id: 'ST002',
-            section_id: 'S1',
-            event_type: 'arrival',
-            planned_time: new Date(startTime.getTime() + 120 * 60 * 1000).toISOString(),
-            actual_time: new Date(startTime.getTime() + 135 * 60 * 1000).toISOString(),
-            delay_minutes: 15,
-            status: 'arrived',
-            platform: 'P1'
-          }
-        ],
-        'T003': [
-          {
-            station_id: 'ST001',
-            section_id: 'S1',
-            event_type: 'departure',
-            planned_time: new Date(startTime.getTime() + 90 * 60 * 1000).toISOString(),
-            actual_time: new Date(startTime.getTime() + 90 * 60 * 1000).toISOString(),
-            delay_minutes: 0,
-            status: 'departed',
-            platform: 'P2'
-          },
-          {
-            station_id: 'ST002',
-            section_id: 'S1',
-            event_type: 'arrival',
-            planned_time: new Date(startTime.getTime() + 150 * 60 * 1000).toISOString(),
-            actual_time: new Date(startTime.getTime() + 150 * 60 * 1000).toISOString(),
-            delay_minutes: 0,
-            status: 'arrived',
-            platform: 'P3'
-          }
-        ]
-      },
-      time_range: {
-        start: startTime.toISOString(),
-        end: endTime.toISOString()
-      }
-    }
-  }, [])
 
   async function handleAccept(rec: Recommendation) {
     try {
@@ -195,24 +110,10 @@ export default function DashboardPage() {
       {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
       {actionMsg && <div className="mb-4 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">{actionMsg}</div>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow">
-            <TimelineChart
-              data={(timeline && Object.keys(timeline.timeline || {}).length > 0) ? timeline : mockTimelineData}
-              height={380}
-              embedded
-              compact
-              showHeader={true}
-              showLegend={true}
-            />
-          </section>
-        </div>
-        <div className="lg:col-span-1 flex flex-col gap-6">
-          <KPIsPanel kpis={kpis} />
-          <SmartRecommendations recommendations={recs} onAccept={handleAccept} onOverride={handleOverride} />
-          <ForecastsPanel forecasts={mockForecasts} />
-        </div>
+      <div className="flex flex-col gap-6 mb-6">
+        <KPIsPanel kpis={kpis} />
+        <SmartRecommendations recommendations={recs} onAccept={handleAccept} onOverride={handleOverride} />
+        <ForecastsPanel forecasts={mockForecasts} />
       </div>
 
       <OverrideModal
