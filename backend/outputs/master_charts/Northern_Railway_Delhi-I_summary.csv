@@ -1,0 +1,49 @@
+station,distance,arrival,departure,train_type,train_number
+New Delhi,0.0,06:00:00,06:15:00,goods,1
+Old Delhi,60.0,07:35:00,07:50:00,goods,1
+Ghaziabad,120.0,09:10:00,09:25:00,goods,1
+Meerut,180.0,10:45:00,11:00:00,goods,1
+Muzaffarnagar,240.0,12:20:00,12:35:00,goods,1
+Saharanpur,300.0,13:55:00,14:10:00,goods,1
+New Delhi,0.0,08:00:00,08:15:00,goods,2
+Old Delhi,60.0,09:35:00,09:50:00,goods,2
+Ghaziabad,120.0,11:10:00,11:25:00,goods,2
+Meerut,180.0,12:45:00,13:00:00,goods,2
+Muzaffarnagar,240.0,14:20:00,14:35:00,goods,2
+Saharanpur,300.0,15:55:00,16:10:00,goods,2
+New Delhi,0.0,10:00:00,10:15:00,goods,3
+Old Delhi,60.0,11:35:00,11:50:00,goods,3
+Ghaziabad,120.0,13:10:00,13:25:00,goods,3
+Meerut,180.0,14:45:00,15:00:00,goods,3
+Muzaffarnagar,240.0,16:20:00,16:35:00,goods,3
+Saharanpur,300.0,17:55:00,18:10:00,goods,3
+New Delhi,0.0,07:00:00,07:05:00,passenger,1
+Old Delhi,60.0,08:05:00,08:10:00,passenger,1
+Ghaziabad,120.0,09:10:00,09:15:00,passenger,1
+Meerut,180.0,10:15:00,10:20:00,passenger,1
+Muzaffarnagar,240.0,11:20:00,11:25:00,passenger,1
+Saharanpur,300.0,12:25:00,12:30:00,passenger,1
+New Delhi,0.0,09:00:00,09:05:00,passenger,2
+Old Delhi,60.0,10:05:00,10:10:00,passenger,2
+Ghaziabad,120.0,11:10:00,11:15:00,passenger,2
+Meerut,180.0,12:15:00,12:20:00,passenger,2
+Muzaffarnagar,240.0,13:20:00,13:25:00,passenger,2
+Saharanpur,300.0,14:25:00,14:30:00,passenger,2
+New Delhi,0.0,11:00:00,11:05:00,passenger,3
+Old Delhi,60.0,12:05:00,12:10:00,passenger,3
+Ghaziabad,120.0,13:10:00,13:15:00,passenger,3
+Meerut,180.0,14:15:00,14:20:00,passenger,3
+Muzaffarnagar,240.0,15:20:00,15:25:00,passenger,3
+Saharanpur,300.0,16:25:00,16:30:00,passenger,3
+New Delhi,0.0,06:30:00,06:33:00,express,1
+Old Delhi,60.0,07:18:00,07:21:00,express,1
+Ghaziabad,120.0,08:06:00,08:09:00,express,1
+Meerut,180.0,08:54:00,08:57:00,express,1
+Muzaffarnagar,240.0,09:42:00,09:45:00,express,1
+Saharanpur,300.0,10:30:00,10:33:00,express,1
+New Delhi,0.0,08:30:00,08:33:00,express,2
+Old Delhi,60.0,09:18:00,09:21:00,express,2
+Ghaziabad,120.0,10:06:00,10:09:00,express,2
+Meerut,180.0,10:54:00,10:57:00,express,2
+Muzaffarnagar,240.0,11:42:00,11:45:00,express,2
+Saharanpur,300.0,12:30:00,12:33:00,express,2

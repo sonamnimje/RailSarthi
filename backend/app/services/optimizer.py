@@ -74,6 +74,20 @@ class OptimizerService:
 					conflicts[t_curr] = _plat
 		return conflicts
 
+	def _latest_delay_for_train(self, db: Session, train_id: str, lookback_minutes: int = 60) -> float:
+		now = datetime.now(timezone.utc)
+		start = now - timedelta(minutes=lookback_minutes)
+		row = (
+			db.query(TrainLog.delay_minutes)
+			.filter(TrainLog.train_id == train_id)
+			.filter(TrainLog.timestamp >= start)
+			.order_by(TrainLog.timestamp.desc())
+			.first()
+		)
+		if row and row[0] is not None:
+			return float(row[0])
+		return 0.0
+
 	def optimize(self, request: Dict[str, Any], db: Session) -> Dict[str, Any]:
 		section_id: str = request.get("section_id", "")
 		lookahead_minutes: int = int(request.get("lookahead_minutes", 30))
@@ -105,6 +119,12 @@ class OptimizerService:
 				add = min(d / 10.0, 1.0) * 0.5
 				score += add
 				reason_bits.append(f"historical delay {d:.1f}m (score +{add:.2f})")
+
+			live_d = self._latest_delay_for_train(db, train_id, lookback_minutes=max(15, lookahead_minutes))
+			if live_d > 0:
+				add_live = min(live_d / 15.0, 1.0) * 0.3
+				score += add_live
+				reason_bits.append(f"live delay {live_d:.1f}m (score +{add_live:.2f})")
 
 			if train_id in platform_conf:
 				score += 0.3

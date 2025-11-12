@@ -22,4 +22,8 @@ tenacity==8.5.0
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.9
+matplotlib==3.8.4
+PyPDF2==3.0.1
+Pillow==10.4.0
+pytesseract==0.3.10
 

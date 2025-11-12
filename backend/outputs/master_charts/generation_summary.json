@@ -1,0 +1,194 @@
+[
+  {
+    "zone": "Central Railway",
+    "division": "Mumbai",
+    "chart": "outputs/master_charts/Central_Railway_Mumbai_chart.png",
+    "csv": "outputs/master_charts/Central_Railway_Mumbai_summary.csv"
+  },
+  {
+    "zone": "Central Railway",
+    "division": "Nagpur",
+    "chart": "outputs/master_charts/Central_Railway_Nagpur_chart.png",
+    "csv": "outputs/master_charts/Central_Railway_Nagpur_summary.csv"
+  },
+  {
+    "zone": "Eastern Railway",
+    "division": "Howrah-I",
+    "chart": "outputs/master_charts/Eastern_Railway_Howrah-I_chart.png",
+    "csv": "outputs/master_charts/Eastern_Railway_Howrah-I_summary.csv"
+  },
+  {
+    "zone": "Eastern Railway",
+    "division": "Howrah-II",
+    "chart": "outputs/master_charts/Eastern_Railway_Howrah-II_chart.png",
+    "csv": "outputs/master_charts/Eastern_Railway_Howrah-II_summary.csv"
+  },
+  {
+    "zone": "East Central Railway",
+    "division": "Danapur",
+    "chart": "outputs/master_charts/East_Central_Railway_Danapur_chart.png",
+    "csv": "outputs/master_charts/East_Central_Railway_Danapur_summary.csv"
+  },
+  {
+    "zone": "East Central Railway",
+    "division": "Mugalsarai",
+    "chart": "outputs/master_charts/East_Central_Railway_Mugalsarai_chart.png",
+    "csv": "outputs/master_charts/East_Central_Railway_Mugalsarai_summary.csv"
+  },
+  {
+    "zone": "East Coast Railway",
+    "division": "Khurda Road",
+    "chart": "outputs/master_charts/East_Coast_Railway_Khurda_Road_chart.png",
+    "csv": "outputs/master_charts/East_Coast_Railway_Khurda_Road_summary.csv"
+  },
+  {
+    "zone": "East Coast Railway",
+    "division": "Waltair",
+    "chart": "outputs/master_charts/East_Coast_Railway_Waltair_chart.png",
+    "csv": "outputs/master_charts/East_Coast_Railway_Waltair_summary.csv"
+  },
+  {
+    "zone": "Northern Railway",
+    "division": "Delhi-I",
+    "chart": "outputs/master_charts/Northern_Railway_Delhi-I_chart.png",
+    "csv": "outputs/master_charts/Northern_Railway_Delhi-I_summary.csv"
+  },
+  {
+    "zone": "Northern Railway",
+    "division": "Delhi-II",
+    "chart": "outputs/master_charts/Northern_Railway_Delhi-II_chart.png",
+    "csv": "outputs/master_charts/Northern_Railway_Delhi-II_summary.csv"
+  },
+  {
+    "zone": "North Central Railway",
+    "division": "Allahabad",
+    "chart": "outputs/master_charts/North_Central_Railway_Allahabad_chart.png",
+    "csv": "outputs/master_charts/North_Central_Railway_Allahabad_summary.csv"
+  },
+  {
+    "zone": "North Central Railway",
+    "division": "Jhansi",
+    "chart": "outputs/master_charts/North_Central_Railway_Jhansi_chart.png",
+    "csv": "outputs/master_charts/North_Central_Railway_Jhansi_summary.csv"
+  },
+  {
+    "zone": "North Eastern Railway",
+    "division": "Izzatnagar",
+    "chart": "outputs/master_charts/North_Eastern_Railway_Izzatnagar_chart.png",
+    "csv": "outputs/master_charts/North_Eastern_Railway_Izzatnagar_summary.csv"
+  },
+  {
+    "zone": "North Eastern Railway",
+    "division": "Lucknow",
+    "chart": "outputs/master_charts/North_Eastern_Railway_Lucknow_chart.png",
+    "csv": "outputs/master_charts/North_Eastern_Railway_Lucknow_summary.csv"
+  },
+  {
+    "zone": "North Frontier Railway",
+    "division": "Katihar",
+    "chart": "outputs/master_charts/North_Frontier_Railway_Katihar_chart.png",
+    "csv": "outputs/master_charts/North_Frontier_Railway_Katihar_summary.csv"
+  },
+  {
+    "zone": "North Frontier Railway",
+    "division": "Alipurduar",
+    "chart": "outputs/master_charts/North_Frontier_Railway_Alipurduar_chart.png",
+    "csv": "outputs/master_charts/North_Frontier_Railway_Alipurduar_summary.csv"
+  },
+  {
+    "zone": "North Western Railway",
+    "division": "Jaipur",
+    "chart": "outputs/master_charts/North_Western_Railway_Jaipur_chart.png",
+    "csv": "outputs/master_charts/North_Western_Railway_Jaipur_summary.csv"
+  },
+  {
+    "zone": "North Western Railway",
+    "division": "Jodhpur",
+    "chart": "outputs/master_charts/North_Western_Railway_Jodhpur_chart.png",
+    "csv": "outputs/master_charts/North_Western_Railway_Jodhpur_summary.csv"
+  },
+  {
+    "zone": "Southern Railway",
+    "division": "Chennai",
+    "chart": "outputs/master_charts/Southern_Railway_Chennai_chart.png",
+    "csv": "outputs/master_charts/Southern_Railway_Chennai_summary.csv"
+  },
+  {
+    "zone": "Southern Railway",
+    "division": "Madurai",
+    "chart": "outputs/master_charts/Southern_Railway_Madurai_chart.png",
+    "csv": "outputs/master_charts/Southern_Railway_Madurai_summary.csv"
+  },
+  {
+    "zone": "South Central Railway",
+    "division": "Secunderabad",
+    "chart": "outputs/master_charts/South_Central_Railway_Secunderabad_chart.png",
+    "csv": "outputs/master_charts/South_Central_Railway_Secunderabad_summary.csv"
+  },
+  {
+    "zone": "South Central Railway",
+    "division": "Hyderabad",
+    "chart": "outputs/master_charts/South_Central_Railway_Hyderabad_chart.png",
+    "csv": "outputs/master_charts/South_Central_Railway_Hyderabad_summary.csv"
+  },
+  {
+    "zone": "South Eastern Railway",
+    "division": "Kharagpur",
+    "chart": "outputs/master_charts/South_Eastern_Railway_Kharagpur_chart.png",
+    "csv": "outputs/master_charts/South_Eastern_Railway_Kharagpur_summary.csv"
+  },
+  {
+    "zone": "South Eastern Railway",
+    "division": "Adra",
+    "chart": "outputs/master_charts/South_Eastern_Railway_Adra_chart.png",
+    "csv": "outputs/master_charts/South_Eastern_Railway_Adra_summary.csv"
+  },
+  {
+    "zone": "South East Central Railway",
+    "division": "Bilaspur",
+    "chart": "outputs/master_charts/South_East_Central_Railway_Bilaspur_chart.png",
+    "csv": "outputs/master_charts/South_East_Central_Railway_Bilaspur_summary.csv"
+  },
+  {
+    "zone": "South East Central Railway",
+    "division": "Nagpur",
+    "chart": "outputs/master_charts/South_East_Central_Railway_Nagpur_chart.png",
+    "csv": "outputs/master_charts/South_East_Central_Railway_Nagpur_summary.csv"
+  },
+  {
+    "zone": "South Western Railway",
+    "division": "Bangalore",
+    "chart": "outputs/master_charts/South_Western_Railway_Bangalore_chart.png",
+    "csv": "outputs/master_charts/South_Western_Railway_Bangalore_summary.csv"
+  },
+  {
+    "zone": "South Western Railway",
+    "division": "Mysore",
+    "chart": "outputs/master_charts/South_Western_Railway_Mysore_chart.png",
+    "csv": "outputs/master_charts/South_Western_Railway_Mysore_summary.csv"
+  },
+  {
+    "zone": "Western Railway",
+    "division": "BCT",
+    "chart": "outputs/master_charts/Western_Railway_BCT_chart.png",
+    "csv": "outputs/master_charts/Western_Railway_BCT_summary.csv"
+  },
+  {
+    "zone": "Western Railway",
+    "division": "Vadodara",
+    "chart": "outputs/master_charts/Western_Railway_Vadodara_chart.png",
+    "csv": "outputs/master_charts/Western_Railway_Vadodara_summary.csv"
+  },
+  {
+    "zone": "West Central Railway",
+    "division": "Jabalpur",
+    "chart": "outputs/master_charts/West_Central_Railway_Jabalpur_chart.png",
+    "csv": "outputs/master_charts/West_Central_Railway_Jabalpur_summary.csv"
+  },
+  {
+    "zone": "West Central Railway",
+    "division": "Bhopal",
+    "chart": "outputs/master_charts/West_Central_Railway_Bhopal_chart.png",
+    "csv": "outputs/master_charts/West_Central_Railway_Bhopal_summary.csv"
+  }
+]

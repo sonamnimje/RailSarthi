@@ -1,9 +1,11 @@
 import os
+import logging
 from dotenv import load_dotenv
 
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
 
 
 class Settings:
@@ -27,18 +29,56 @@ class Settings:
 
 	SQLALCHEMY_ECHO: bool = os.getenv("SQLALCHEMY_ECHO", "false").lower() == "true"
 
+	# RapidAPI IRCTC configuration
+	RAPIDAPI_IRCTC_KEY: str | None = os.getenv("RAPIDAPI_IRCTC_KEY", "1928f149cbmsh4c78c3caf1c30bdp1db641jsn64b1fd5e4ac1")
+	RAPIDAPI_IRCTC_HOST: str = os.getenv("RAPIDAPI_IRCTC_HOST", "irctc1.p.rapidapi.com")
+	
+	def __init__(self):
+		"""Validate database configuration on initialization"""
+		self._validate_database_config()
+	
+	def _validate_database_config(self):
+		"""Validate database configuration and log warnings"""
+		is_render = os.getenv("RENDER") is not None
+		
+		if self.DB_TYPE == "postgresql":
+			if not self.DATABASE_URL:
+				if is_render:
+					logger.warning(
+						"DATABASE_URL is not set. On Render, make sure you have linked a PostgreSQL database "
+						"to your web service. The DATABASE_URL should be automatically set when you link the database."
+					)
+				else:
+					logger.warning(
+						f"DATABASE_URL is not set. Falling back to individual DB_* variables. "
+						f"Using DB_HOST={self.DB_HOST}, DB_PORT={self.DB_PORT}, DB_NAME={self.DB_NAME}"
+					)
+					if self.DB_HOST == "localhost" and is_render:
+						logger.error(
+							"DB_HOST is set to 'localhost' which will not work on Render. "
+							"Please set DATABASE_URL or ensure your database service is properly linked."
+						)
+			else:
+				# Log that DATABASE_URL is set (but don't log the actual URL for security)
+				logger.info("DATABASE_URL is set (using provided connection string)")
+
 	@property
 	def sync_database_uri(self) -> str:
 		# Prefer a provided DATABASE_URL when not using sqlite
 		if self.DATABASE_URL and self.DB_TYPE != "sqlite":
 			url = self.DATABASE_URL
+			# Convert postgres:// to postgresql+psycopg://
 			if url.startswith("postgres://"):
 				url = "postgresql+psycopg://" + url[len("postgres://"):]
-			if url.startswith("postgresql://"):
+			elif url.startswith("postgresql://"):
 				url = "postgresql+psycopg://" + url[len("postgresql://"):]
+			# Ensure it starts with postgresql+psycopg://
+			if not url.startswith("postgresql+psycopg://"):
+				url = "postgresql+psycopg://" + url
+			logger.debug(f"Using DATABASE_URL for connection (hostname masked)")
 			return url
 		if self.DB_TYPE == "sqlite":
-			# Prefer explicit SQLITE_PATH. On Render or non-dev, default to /var/data which is writable.
+			# Prefer explicit SQLITE_PATH. On Render or non-dev, default to /tmp which is writable.
 			if self.SQLITE_PATH:
 				db_path = self.SQLITE_PATH
 			else:
@@ -52,17 +92,24 @@ class Settings:
 			# Ensure directory exists to avoid OperationalError on first run
 			os.makedirs(os.path.dirname(db_path), exist_ok=True)
 			return f"sqlite:///{db_path}"
-		return f"postgresql+psycopg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+		# Fallback to constructing from individual components
+		uri = f"postgresql+psycopg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+		logger.debug(f"Constructed database URI from individual components (host={self.DB_HOST}, port={self.DB_PORT})")
+		return uri
 
 	@property
 	def async_database_uri(self) -> str:
 		# Prefer a provided DATABASE_URL for async as well
 		if self.DATABASE_URL and self.DB_TYPE != "sqlite":
 			url = self.DATABASE_URL
+			# Convert postgres:// to postgresql+asyncpg://
 			if url.startswith("postgres://"):
 				url = "postgresql+asyncpg://" + url[len("postgres://"):]
-			if url.startswith("postgresql://"):
+			elif url.startswith("postgresql://"):
 				url = "postgresql+asyncpg://" + url[len("postgresql://"):]
+			# Ensure it starts with postgresql+asyncpg://
+			if not url.startswith("postgresql+asyncpg://"):
+				url = "postgresql+asyncpg://" + url
 			return url
 		if self.DB_TYPE == "sqlite":
 			if self.SQLITE_PATH:

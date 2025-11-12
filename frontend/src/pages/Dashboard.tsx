@@ -1,17 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import KPIsPanel from '../components/KPIsPanel'
-import MapPanel from '../components/MapPanel'
 import SmartRecommendations from '../components/SmartRecommendations'
 import ForecastsPanel from '../components/ForecastsPanel'
 import TimelineChart from '../components/TimelineChart'
 import OverrideModal from '../components/OverrideModal'
-import { fetchKpis, fetchPositions, fetchRecommendations, type Recommendation, fetchTimelineData, type TimelineData, applyOverride } from '../lib/api'
+import { fetchKpis, fetchRecommendations, type Recommendation, fetchTimelineData, type TimelineData, applyOverride } from '../lib/api'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
   const [kpis, setKpis] = useState<{ throughput_per_hour?: number; avg_delay_minutes?: number; congestion_index?: number; on_time_percentage?: number } | null>(null)
-  const [positions, setPositions] = useState<Array<{ train_id: string; location_km: number; speed_kmph: number }>>([])
   const [recs, setRecs] = useState<Recommendation[]>([])
   const [timeline, setTimeline] = useState<TimelineData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -25,15 +23,13 @@ export default function DashboardPage() {
       setLoading(true)
       setError(null)
       try {
-        const [kpiResp, posResp, recResp, timelineResp] = await Promise.all([
+        const [kpiResp, recResp, timelineResp] = await Promise.all([
           fetchKpis().catch(() => null),
-          fetchPositions().catch(() => []),
           fetchRecommendations({ section_id: 'S1', lookahead_minutes: 30 }).catch(() => ({ recommendations: [] as Recommendation[] } as any)),
           fetchTimelineData({ section_id: 'S1', hours: 6 }).catch(() => null)
         ])
         if (cancelled) return
         setKpis(kpiResp)
-        setPositions(posResp?.map(p => ({ train_id: p.train_id, location_km: p.location_km, speed_kmph: p.speed_kmph })) || [])
         setRecs((recResp?.recommendations as Recommendation[]) || [])
         setTimeline(timelineResp)
       } catch (e: any) {
@@ -201,7 +197,6 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <MapPanel positions={positions} />
           <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow">
             <TimelineChart
               data={(timeline && Object.keys(timeline.timeline || {}).length > 0) ? timeline : mockTimelineData}

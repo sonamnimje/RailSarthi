@@ -22,4 +22,238 @@ body { @apply bg-white text-gray-900 text-lg; }
 	}
 }
 
+@layer components {
+	.home-3d-scene {
+		width: 18rem;
+		height: 18rem;
+		perspective: 1200px;
+	}
+
+	.home-3d-orbit {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		transform-style: preserve-3d;
+		animation: homeOrbitSpin 14s linear infinite;
+	}
+
+	.home-3d-track {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 14rem;
+		height: 14rem;
+		margin-left: -7rem;
+		margin-top: -7rem;
+		border-radius: 9999px;
+		border: 2px solid rgba(59, 130, 246, 0.32);
+		box-shadow:
+			0 0 30px rgba(59, 130, 246, 0.35),
+			inset 0 0 20px rgba(59, 130, 246, 0.18);
+		transform: rotateX(72deg);
+		background: radial-gradient(ellipse at center, rgba(191, 219, 254, 0.35) 0%, rgba(191, 219, 254, 0.1) 70%, transparent 100%);
+	}
+
+	.home-3d-glow {
+		position: absolute;
+		top: 54%;
+		left: 50%;
+		width: 9rem;
+		height: 9rem;
+		margin-left: -4.5rem;
+		margin-top: -4.5rem;
+		border-radius: 50%;
+		background: radial-gradient(circle at center, rgba(59, 130, 246, 0.28) 0%, rgba(59, 130, 246, 0.08) 65%, transparent 100%);
+		transform: rotateX(90deg);
+		filter: blur(2px);
+	}
+
+	.home-3d-train {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		display: flex;
+		gap: 0.4rem;
+		transform-style: preserve-3d;
+		transform-origin: center;
+		transform: rotateX(72deg) translateX(7rem);
+		animation: homeTrainBob 3.6s ease-in-out infinite;
+	}
+
+	.home-3d-carriage {
+		position: relative;
+		width: 3.2rem;
+		height: 1.6rem;
+		border-radius: 0.9rem;
+		background: linear-gradient(160deg, #0ea5e9 0%, #0284c7 50%, #0369a1 100%);
+		box-shadow:
+			0 10px 14px rgba(15, 118, 110, 0.25),
+			inset 0 0 12px rgba(134, 239, 172, 0.35);
+		transform: rotateY(-12deg);
+	}
+
+	.home-3d-carriage::before {
+		content: '';
+		position: absolute;
+		top: 0.45rem;
+		left: 0.5rem;
+		width: 2.2rem;
+		height: 0.45rem;
+		border-radius: 0.4rem;
+		background: linear-gradient(90deg, rgba(236, 254, 255, 0.9), rgba(191, 219, 254, 0.6));
+		box-shadow: 0 0 12px rgba(191, 219, 254, 0.8);
+	}
+
+	.home-3d-carriage::after {
+		content: '';
+		position: absolute;
+		bottom: -0.3rem;
+		left: 0.5rem;
+		width: 0.9rem;
+		height: 0.9rem;
+		border-radius: 50%;
+		background: rgba(14, 165, 233, 0.5);
+		filter: blur(6px);
+		animation: homeLightPulse 2.4s ease-in-out infinite;
+	}
+
+	.home-3d-carriage--lead {
+		background: linear-gradient(160deg, #fde68a 0%, #f97316 45%, #fb923c 100%);
+		box-shadow:
+			0 12px 18px rgba(249, 115, 22, 0.25),
+			inset 0 0 12px rgba(255, 255, 255, 0.45);
+		transform: rotateY(-8deg);
+	}
+
+	.home-3d-carriage--lead::after {
+		left: auto;
+		right: 0.5rem;
+		background: rgba(253, 224, 71, 0.75);
+		animation-duration: 1.9s;
+	}
+
+	.home-3d-signal {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 0.35rem;
+		height: 3rem;
+		border-radius: 9999px;
+		background: linear-gradient(180deg, rgba(148, 163, 184, 0.4), rgba(30, 41, 59, 0.7));
+		transform-origin: bottom center;
+		transform-style: preserve-3d;
+	}
+
+	.home-3d-signal::before {
+		content: '';
+		position: absolute;
+		top: -0.6rem;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 0.9rem;
+		height: 0.9rem;
+		border-radius: 50%;
+		background: radial-gradient(circle, rgba(74, 222, 128, 0.9) 0%, rgba(74, 222, 128, 0.2) 65%, transparent 100%);
+		box-shadow: 0 0 18px rgba(74, 222, 128, 0.55);
+		animation: homeSignalPulse 3s ease-in-out infinite;
+	}
+
+	.home-3d-signal--a {
+		transform: rotateX(85deg) rotateY(25deg) translateZ(6.5rem);
+	}
+
+	.home-3d-signal--b {
+		transform: rotateX(85deg) rotateY(-35deg) translateZ(6.5rem);
+		animation-delay: 1.2s;
+	}
+}
+
+@keyframes homeOrbitSpin {
+	0% {
+		transform: rotateZ(0deg);
+	}
+	100% {
+		transform: rotateZ(360deg);
+	}
+}
+
+@keyframes homeTrainBob {
+	0%, 100% {
+		transform: rotateX(72deg) translateX(7rem) translateY(-0.25rem);
+	}
+	50% {
+		transform: rotateX(72deg) translateX(7rem) translateY(0.35rem);
+	}
+}
+
+@keyframes homeLightPulse {
+	0%, 100% {
+		opacity: 0.35;
+		transform: scale(0.8);
+	}
+	50% {
+		opacity: 0.9;
+		transform: scale(1.15);
+	}
+}
+
+@keyframes homeSignalPulse {
+	0%, 100% {
+		transform: translateX(-50%) scale(0.85);
+		opacity: 0.65;
+	}
+	50% {
+		transform: translateX(-50%) scale(1.05);
+		opacity: 1;
+	}
+}
+
+/* Home page interactive animations */
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes slide-in-left {
+	from {
+		opacity: 0;
+		transform: translateX(-30px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes scale-in {
+	from {
+		opacity: 0;
+		transform: scale(0.9);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+.animate-fade-in {
+	animation: fade-in 0.8s ease-out;
+}
+
+.animate-slide-in-left {
+	animation: slide-in-left 0.8s ease-out;
+}
+
+.animate-slide-in-left-delay {
+	animation: slide-in-left 0.8s ease-out 0.2s both;
+}
+
+.animate-scale-in {
+	animation: scale-in 0.3s ease-out;
+}
+
 

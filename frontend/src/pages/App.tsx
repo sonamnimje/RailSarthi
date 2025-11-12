@@ -86,40 +86,40 @@ export default function App() {
 					</form>
 				</main>
 			) : (
-				<main className="mt-6 grid gap-4 md:grid-cols-3">
-				<section className="md:col-span-2 rounded-lg border border-gray-800 p-4">
-					<h2 className="font-semibold mb-2">Section Map (placeholder)</h2>
-					<div className="h-64 bg-gray-900 rounded" />
-				</section>
-				<section className="rounded-lg border border-gray-800 p-4">
-					<h2 className="font-semibold mb-2">Recommendations</h2>
-					<div className="flex items-center gap-2 mb-2">
-						<button className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500" onClick={getRecs} disabled={loading}>
-							{loading ? 'Loading...' : 'Refresh'}
-						</button>
-						{error && <span className="text-red-400 text-sm">{error}</span>}
-					</div>
-					<ul className="space-y-2">
-						{recs.map((r, idx) => (
-							<li key={idx} className="p-2 rounded bg-black/30">
-								<div className="text-sm">
-									<span className="font-semibold">{r.train_id}</span>: {r.action}
-								</div>
-								<div className="text-xs text-gray-400">{r.reason}</div>
-							</li>
-						))}
-					</ul>
-				</section>
-				<section className="rounded-lg border border-gray-800 p-4">
-					<h2 className="font-semibold mb-2">Override</h2>
-					<div className="grid gap-2">
-						<input className="bg-gray-900 rounded px-2 py-1" placeholder="Train ID" value={overridePayload.train_id} onChange={(e) => setOverridePayload({ ...overridePayload, train_id: e.target.value })} />
-						<input className="bg-gray-900 rounded px-2 py-1" placeholder="Action" value={overridePayload.action} onChange={(e) => setOverridePayload({ ...overridePayload, action: e.target.value })} />
-						<input className="bg-gray-900 rounded px-2 py-1" placeholder="Reason (optional)" value={overridePayload.reason} onChange={(e) => setOverridePayload({ ...overridePayload, reason: e.target.value })} />
-						<button className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500" onClick={submitOverride}>Apply Override</button>
-					</div>
-				</section>
-			</main>
+				<main className="mt-6 grid gap-4 md:grid-cols-2">
+					<section className="md:col-span-2 rounded-lg border border-gray-800 p-4">
+						<h2 className="font-semibold mb-2">Section Map (placeholder)</h2>
+						<div className="h-64 bg-gray-900 rounded" />
+					</section>
+					<section className="rounded-lg border border-gray-800 p-4">
+						<h2 className="font-semibold mb-2">Recommendations</h2>
+						<div className="mb-2 flex items-center gap-2">
+							<button className="rounded bg-blue-600 px-3 py-1 hover:bg-blue-500" onClick={getRecs} disabled={loading}>
+								{loading ? 'Loading...' : 'Refresh'}
+							</button>
+							{error && <span className="text-sm text-red-400">{error}</span>}
+						</div>
+						<ul className="space-y-2">
+							{recs.map((r, idx) => (
+								<li key={idx} className="rounded bg-black/30 p-2">
+									<div className="text-sm">
+										<span className="font-semibold">{r.train_id}</span>: {r.action}
+									</div>
+									<div className="text-xs text-gray-400">{r.reason}</div>
+								</li>
+							))}
+						</ul>
+					</section>
+					<section className="rounded-lg border border-gray-800 p-4">
+						<h2 className="font-semibold mb-2">Override</h2>
+						<div className="grid gap-2">
+							<input className="rounded bg-gray-900 px-2 py-1" placeholder="Train ID" value={overridePayload.train_id} onChange={(e) => setOverridePayload({ ...overridePayload, train_id: e.target.value })} />
+							<input className="rounded bg-gray-900 px-2 py-1" placeholder="Action" value={overridePayload.action} onChange={(e) => setOverridePayload({ ...overridePayload, action: e.target.value })} />
+							<input className="rounded bg-gray-900 px-2 py-1" placeholder="Reason (optional)" value={overridePayload.reason} onChange={(e) => setOverridePayload({ ...overridePayload, reason: e.target.value })} />
+							<button className="rounded bg-emerald-600 px-3 py-1 hover:bg-emerald-500" onClick={submitOverride}>Apply Override</button>
+						</div>
+					</section>
+				</main>
 			)}
 		</div>
 	)

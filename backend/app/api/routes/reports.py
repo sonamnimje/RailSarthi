@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta, timezone
 from .users import require_role
 from app.db.session import get_db
 from app.db.models import TrainPosition, TrainSchedule, Train
+import os
+import json
 
 router = APIRouter(dependencies=[Depends(require_role("controller", "admin"))])
 
@@ -151,3 +153,61 @@ def hotspots(hours: int = Query(24, ge=1, le=168), top_sections: int = Query(4, 
 
     return {"xLabels": x_labels, "yLabels": y_labels, "data": data_matrix}
 
+
+@router.get("/master-charts")
+def list_master_charts(request: Request) -> dict:
+    """
+    Return list of generated master charts and CSVs with absolute URLs that the frontend can display.
+    """
+    root_dir = os.getcwd()
+    out_dir = os.path.join(root_dir, "outputs", "master_charts")
+    summary_path = os.path.join(out_dir, "generation_summary.json")
+
+    def to_abs_url(rel_path: str) -> str:
+        # Normalize path to just filename and build URL under static mount
+        filename = os.path.basename(rel_path)
+        base = str(request.base_url).rstrip("/")
+        return f"{base}/static/master_charts/{filename}"
+
+    items = []
+    # Prefer the generation summary if available
+    if os.path.exists(summary_path):
+        try:
+            with open(summary_path, "r") as f:
+                data = json.load(f)
+            for entry in data:
+                zone = entry.get("zone", "")
+                division = entry.get("division", "")
+                chart_rel = entry.get("chart", "")
+                csv_rel = entry.get("csv", "")
+                items.append({
+                    "zone": zone,
+                    "division": division,
+                    "chart_url": to_abs_url(chart_rel),
+                    "csv_url": to_abs_url(csv_rel),
+                })
+        except Exception:
+            items = []
+
+    # Fallback: scan directory if summary is missing or failed
+    if not items and os.path.isdir(out_dir):
+        pngs = [f for f in os.listdir(out_dir) if f.lower().endswith(".png")]
+        for png in pngs:
+            # Try to parse zone and division from filename pattern: Zone_Division_chart.png
+            name = png[:-4]
+            zone = ""
+            division = ""
+            if name.endswith("_chart"):
+                parts = name[:-6].split("_")
+                if len(parts) >= 2:
+                    zone = parts[0].replace("_", " ")
+                    division = parts[1].replace("_", " ")
+            csv_name = name.replace("_chart", "_summary") + ".csv"
+            items.append({
+                "zone": zone or "Unknown Zone",
+                "division": division or "Unknown Division",
+                "chart_url": f"{str(request.base_url).rstrip('/')}/static/master_charts/{png}",
+                "csv_url": f"{str(request.base_url).rstrip('/')}/static/master_charts/{csv_name}",
+            })
+
+    return {"charts": items}

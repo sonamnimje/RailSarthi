@@ -136,6 +136,12 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)) -> UserRead:
         )
     except Exception as e:
         logger.error(f"Unexpected error during signup: {str(e)}", exc_info=True)
+        # In development, return the actual exception detail to aid debugging.
+        if settings.ENV == "dev":
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred. Please try again later."
@@ -175,6 +181,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         )
     except Exception as e:
         logger.error(f"Unexpected error during login: {str(e)}", exc_info=True)
+        # Expose the error message in dev mode to make debugging faster.
+        if settings.ENV == "dev":
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred. Please try again later."

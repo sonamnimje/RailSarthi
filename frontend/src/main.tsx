@@ -27,7 +27,7 @@ root.render(
 		<BrowserRouter>
 			<Routes>
 				<Route path="/login" element={<LoginPage onSuccess={() => location.replace('/app/dashboard')} />} />
-				<Route path="/signup" element={<SignupPage onSuccess={() => location.replace('/')} />} />
+				<Route path="/signup" element={<SignupPage onSuccess={() => location.replace('/app/dashboard')} />} />
 				<Route path="/forgot-password" element={<ForgotPasswordPage />} />
 				{/* All other pages (including Home) use Layout */}
 				<Route element={<Layout />}>

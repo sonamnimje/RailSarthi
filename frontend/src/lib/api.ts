@@ -113,6 +113,21 @@ export async function fetchHotspots(hours = 24, top_sections = 4, buckets = 5) {
 	return (await res.json()) as { xLabels: string[]; yLabels: string[]; data: number[][] }
 }
 
+export type MasterChartItem = {
+	zone: string
+	division: string
+	chart_url: string
+	 csv_url: string
+}
+
+export async function fetchMasterCharts(): Promise<{ charts: MasterChartItem[] }> {
+	const res = await fetch(`${apiBaseUrl}/api/reports/master-charts`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	})
+	if (!res.ok) throw new Error('Failed to fetch master charts')
+	return (await res.json()) as { charts: MasterChartItem[] }
+}
+
 export async function login(username: string, password: string) {
 	const form = new URLSearchParams()
 	form.append('username', username)
@@ -387,6 +402,7 @@ export async function fetchTrainLogs(params: {
 export async function fetchTrainSchedules(params: {
 	train_id?: string
 	station_id?: string
+	section_id?: string
 	status?: string
 	hours?: number
 	limit?: number
@@ -421,5 +437,4 @@ export async function fetchLogStats(hours = 24) {
 	if (!res.ok) throw new Error('Failed to fetch log stats')
 	return (await res.json()) as LogStats
 }
-
 

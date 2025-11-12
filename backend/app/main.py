@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .api.routes import ingest, optimizer, simulator, overrides, ws, users, reports, train_logs
 from .db.session import engine, SessionLocal, test_connection
@@ -61,18 +62,53 @@ def create_app() -> FastAPI:
 	app.include_router(train_logs.router, prefix="/api/train-logs", tags=["train-logs"])
 	app.include_router(ws.router, tags=["ws"])  # exposes /ws/live
 
+	# Serve generated master charts (PNG, CSV, JSON) as static files
+	# Directory is relative to backend/ working dir: outputs/master_charts
+	static_dir = os.path.join("outputs", "master_charts")
+	if not os.path.isdir(static_dir):
+		try:
+			os.makedirs(static_dir, exist_ok=True)
+		except Exception:
+			pass
+	app.mount("/static/master_charts", StaticFiles(directory=static_dir), name="master_charts")
+
 	# Ensure database tables exist on startup
 	@app.on_event("startup")
 	def on_startup() -> None:
+		# Log database configuration (without sensitive data)
+		is_render = os.getenv("RENDER") is not None
+		logger.info(f"Database configuration: DB_TYPE={settings.DB_TYPE}, ENV={settings.ENV}, RENDER={is_render}")
+		if settings.DATABASE_URL:
+			# Mask password in DATABASE_URL for logging
+			masked_url = settings.DATABASE_URL
+			if "@" in masked_url and ":" in masked_url.split("@")[0]:
+				parts = masked_url.split("@")
+				user_pass = parts[0].split("://")[-1] if "://" in parts[0] else parts[0]
+				if ":" in user_pass:
+					user, _ = user_pass.split(":", 1)
+					masked_url = masked_url.replace(user_pass, f"{user}:***")
+			logger.info(f"DATABASE_URL is set (masked): {masked_url.split('@')[0]}@***")
+		else:
+			logger.warning("DATABASE_URL is not set. Using individual DB_* environment variables.")
+			if settings.DB_TYPE == "postgresql" and is_render:
+				logger.error(
+					"⚠️  WARNING: DATABASE_URL is not set on Render. "
+					"Make sure you have linked a PostgreSQL database to your web service in the Render dashboard."
+				)
+		
 		# Test database connection first
 		logger.info(f"Testing database connection to {settings.DB_TYPE} database...")
 		connection_ok, error_msg = test_connection()
 		if not connection_ok:
 			logger.error(f"Database connection test failed: {error_msg}")
 			logger.error("Application will continue to start, but database operations may fail.")
-			logger.error(f"Database URI: {settings.sync_database_uri.replace(settings.DB_PASSWORD, '***') if settings.DB_PASSWORD else settings.sync_database_uri}")
+			# Log masked database URI for debugging
+			masked_uri = settings.sync_database_uri
+			if settings.DB_PASSWORD:
+				masked_uri = masked_uri.replace(settings.DB_PASSWORD, "***")
+			logger.error(f"Database URI (masked): {masked_uri}")
 		else:
-			logger.info("Database connection test successful")
+			logger.info("✓ Database connection test successful")
 		
 		# If using Postgres on Render, attempt a one-time SQLite -> Postgres migration
 		# This is safe to run repeatedly; the migration is idempotent and will skip if dest has data
@@ -97,31 +133,6 @@ def create_app() -> FastAPI:
 		except Exception as e:
 			logger.error(f"Unexpected error during table creation: {str(e)}", exc_info=True)
 
-		# Optional: seed demo data once if enabled and database appears empty
-		if os.getenv("SEED_ON_STARTUP", "false").lower() == "true":
-			try:
-				from app.db.models import Train, TrainSchedule, TrainLog
-				from seed_train_data import seed_data
-				with SessionLocal() as db:
-					# Acquire DB-level advisory lock to prevent concurrent seeding
-					try:
-						lock_acquired = db.execute(text("SELECT pg_try_advisory_lock( hashtext('rail_seed_lock') )")).scalar()
-					except Exception:
-						lock_acquired = True  # On SQLite or if advisory lock unsupported
-					if lock_acquired:
-						trains_count = db.query(Train).count()
-						schedules_count = db.query(TrainSchedule).count()
-						logs_count = db.query(TrainLog).count()
-						if trains_count == 0 and schedules_count == 0 and logs_count == 0:
-							seed_data()
-						# Release lock if Postgres
-						try:
-							db.execute(text("SELECT pg_advisory_unlock( hashtext('rail_seed_lock') )"))
-						except Exception:
-							pass
-			except Exception:
-				# Never block startup on seed issues
-				pass
 		# Lightweight migration: ensure overrides.ai_action exists (SQLite-safe)
 		try:
 			with engine.connect() as conn:
@@ -136,6 +147,11 @@ def create_app() -> FastAPI:
 			logger.warning(f"Could not run migration check: {str(e)}")
 		except Exception as e:
 			logger.warning(f"Unexpected error during migration check: {str(e)}")
+
+
+	@app.on_event("shutdown")
+	async def on_shutdown() -> None:
+		pass
 
 	@app.get("/health")
 	def health() -> dict:
