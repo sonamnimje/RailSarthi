@@ -94,7 +94,7 @@ export default function DigitalTwinMap() {
 	}, []);
 
 	return (
-		<div className="bg-white rounded-2xl shadow p-8 w-full">
+		<div className="bg-blue-50 rounded-2xl shadow p-8 w-full">
 			<Header />
 			<Track>
 				{trains.map(train => (

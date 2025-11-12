@@ -40,7 +40,7 @@ export default function OverrideModal({ isOpen, onClose, onConfirm, trainId, aiA
       onClick={onClose}
     >
       <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
+        className="bg-blue-50 rounded-2xl shadow-2xl w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >

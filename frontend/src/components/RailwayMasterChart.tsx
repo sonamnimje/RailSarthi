@@ -238,7 +238,7 @@ export default function RailwayMasterChart({ height = 720, className }: RailwayM
   const computedHeight = Math.max(height, chartHeight)
 
   return (
-    <div className={clsx('w-full rounded-2xl border border-slate-200 bg-white shadow-sm', className)}>
+    <div className={clsx('w-full rounded-2xl border border-slate-200 bg-blue-50 shadow-sm', className)}>
       <div className="flex flex-col gap-3 px-6 pt-6 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-slate-800">मास्टर चार्ट (Master Chart)</h2>

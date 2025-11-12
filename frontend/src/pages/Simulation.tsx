@@ -112,7 +112,7 @@ function ScenarioSelectionPanel({
 	};
 
 	return (
-		<div className="bg-white rounded-2xl p-6 shadow">
+		<div className="bg-blue-50 rounded-2xl p-6 shadow">
 			<h3 className="text-lg font-semibold text-violet-700 mb-4">🎯 Select Disruption Scenario</h3>
 			
 			{/* Predefined scenarios */}
@@ -270,7 +270,7 @@ function PredictedOutcomesPanel({
 				<div className="text-sm font-medium text-gray-700 mb-2">Train Impacts:</div>
 				<div className="space-y-1 max-h-32 overflow-y-auto">
 					{predictions.train_impacts.map((impact, index) => (
-						<div key={index} className="flex justify-between items-center text-xs bg-white p-2 rounded">
+						<div key={index} className="flex justify-between items-center text-xs bg-blue-50 p-2 rounded">
 							<span>{impact.train_id}</span>
 							<div className="flex items-center gap-2">
 								<span className={`px-2 py-1 rounded text-xs ${
@@ -292,7 +292,7 @@ function PredictedOutcomesPanel({
 				<div className="text-sm font-medium text-gray-700 mb-2">Timeline Preview:</div>
 				<div className="space-y-1 max-h-24 overflow-y-auto">
 					{predictions.timeline.slice(0, 3).map((event, index) => (
-						<div key={index} className="text-xs bg-white p-2 rounded">
+						<div key={index} className="text-xs bg-blue-50 p-2 rounded">
 							<div className="font-medium">{event.event}</div>
 							<div className="text-gray-600">{event.impact}</div>
 						</div>
@@ -324,7 +324,7 @@ function ApplyResultsModal({
 
 	return (
 		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-			<div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+			<div className="bg-blue-50 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
 				{/* Header */}
 				<div className={`p-6 border-b ${applyResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
 					<div className="flex items-center justify-between">
@@ -463,7 +463,7 @@ function SimulationControls({
 	isRunning: boolean;
 }) {
 	return (
-		<div className="bg-white rounded-2xl p-6 shadow">
+		<div className="bg-blue-50 rounded-2xl p-6 shadow">
 			<div className="text-lg font-semibold text-violet-700 mb-4">🎮 Simulation Controls</div>
 			
 			<div className="space-y-4">
@@ -555,10 +555,10 @@ export default function SimulationPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-gray-50 p-6">
+		<div className="min-h-screen bg-gray-50 p-4 sm:p-6">
 			{/* Header */}
-			<div className="flex items-center gap-3 mb-6">
-				<h1 className="text-4xl font-extrabold text-gray-800">🧪 Simulation & Digital Twin</h1>
+			<div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+				<h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-800">🧪 Simulation & Digital Twin</h1>
 			</div>
 
 			{/* Authentication check */}

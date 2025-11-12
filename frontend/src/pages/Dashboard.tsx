@@ -97,13 +97,13 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="p-6 bg-white text-gray-900">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 bg-blue-50 text-gray-900">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">📊</span>
-          <h2 className="text-4xl font-extrabold">Dashboard</h2>
+          <span className="text-xl sm:text-2xl">📊</span>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold">Dashboard</h2>
         </div>
-        <div className="text-sm text-gray-600">
+        <div className="text-xs sm:text-sm text-gray-600">
           {loading ? 'Refreshing…' : 'Updated'} {formattedLastUpdated}
         </div>
       </div>

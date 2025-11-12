@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 html, body, #root { height: 100%; }
-body { @apply bg-white text-gray-900 text-lg; }
+body { @apply bg-blue-50 text-gray-900 text-base sm:text-lg md:text-xl lg:text-2xl; }
 
 @layer utilities {
 	.auth-bg {
@@ -254,6 +254,18 @@ body { @apply bg-white text-gray-900 text-lg; }
 
 .animate-scale-in {
 	animation: scale-in 0.3s ease-out;
+}
+
+.hero {
+    background-size: cover;
+	background-position: center;
+	height: 100vh;
+	display: flex;
+	align-items: center;          /* Vertically center */
+	justify-content: flex-start;  /* Left align */
+	padding-left: 120px;          /* Increased from 80px to move content right */
+	transform: translateY(-40px); /* Keeps it slightly above center */
+	color: white;
 }
 
 

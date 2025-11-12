@@ -1,21 +1,23 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
+import { useCallback, useEffect, useState } from 'react'
+import { fetchLiveTrains as fetchLiveTrainsApi, type LiveTrain } from '../lib/api'
 
 export default function LogsPage() {
-  const [trains, setTrains] = useState([])
-  const [station, setStation] = useState('NDLS')
-  const [hours, setHours] = useState(2)
+  const [trains, setTrains] = useState<LiveTrain[]>([])
+  const [station, setStation] = useState<string>('')
+  const [hours, setHours] = useState<number | undefined>(undefined)
   const [trainNo, setTrainNo] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
+  const [apiStation, setApiStation] = useState<string | null>(null)
+  const [totalTrains, setTotalTrains] = useState<number | null>(null)
 
   // ✅ Normalize times like "36:35" → "12:35 (+1d)"
-  const normalizeTime = (time) => {
+  const normalizeTime = (time: string | number | null | undefined) => {
     if (!time) return '-'
-    const [hourStr, minStr] = time.split(':')
+    const [hourStr, minStr] = String(time).split(':')
     const hour = parseInt(hourStr)
     const min = parseInt(minStr)
-    if (isNaN(hour) || isNaN(min)) return time
+    if (isNaN(hour) || isNaN(min)) return String(time)
 
     if (hour >= 24) {
       const day = Math.floor(hour / 24)
@@ -24,34 +26,47 @@ export default function LogsPage() {
         .toString()
         .padStart(2, '0')} (+${day}d)`
     }
-    return time
+    return String(time)
   }
 
   // ✅ Fetch train data
-  const fetchLiveTrains = async () => {
+  const fetchLiveTrainsFor = useCallback(async (trainNumber?: string) => {
+    if (!station.trim()) {
+      setError('Station code is required')
+      setTrains([])
+      setApiStation(null)
+      setTotalTrains(null)
+      return
+    }
     setLoading(true)
     setError(null)
     try {
-      const params = { fromStationCode: station, hours }
-      if (trainNo) params.trainNo = trainNo
-
-      const res = await axios.get('http://127.0.0.1:8000/api/live/live-trains', { params })
-      const data = res.data.trains || res.data.data || []
-      setTrains(data)
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to fetch train data')
+      const normalizedTrainNo = trainNumber ? trainNumber.trim() : ''
+      const response = await fetchLiveTrainsApi({
+        fromStationCode: station.trim(),
+        hours,
+        trainNo: normalizedTrainNo ? normalizedTrainNo : undefined,
+      })
+      setTrains(response.trains)
+      setApiStation(response.station)
+      setTotalTrains(response.total_trains)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch train data'
+      setError(message)
       setTrains([])
+      setApiStation(null)
+      setTotalTrains(null)
     } finally {
       setLoading(false)
     }
-  }
+  }, [hours, station])
 
   useEffect(() => {
-    fetchLiveTrains()
-  }, [station, hours])
+    fetchLiveTrainsFor()
+  }, [fetchLiveTrainsFor])
 
   return (
-    <div className="p-6 bg-white min-h-screen">
+    <div className="p-6 bg-blue-50 min-h-screen">
       <h2 className="text-3xl font-bold mb-6 text-gray-800">🚉 Live Train Logs</h2>
 
       {/* 🔍 Filters */}
@@ -69,10 +84,14 @@ export default function LogsPage() {
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-1">Time Range (hours)</label>
           <select
-            value={hours}
-            onChange={(e) => setHours(Number(e.target.value))}
+            value={hours ?? ''}
+            onChange={(e) => {
+              const value = e.target.value
+              setHours(value ? Number(value) : undefined)
+            }}
             className="border border-gray-300 rounded px-3 py-2 w-full"
           >
+            <option value="">Select timeframe</option>
             <option value={1}>1 Hour</option>
             <option value={2}>2 Hours</option>
             <option value={3}>3 Hours</option>
@@ -95,11 +114,17 @@ export default function LogsPage() {
 
       {/* 🔄 Fetch Button */}
       <button
-        onClick={fetchLiveTrains}
+        onClick={() => fetchLiveTrainsFor(trainNo)}
         className="bg-blue-600 text-white px-4 py-2 rounded mb-4 hover:bg-blue-700"
       >
         Fetch Data
       </button>
+
+      {apiStation && !loading && !error && (
+        <div className="text-sm text-gray-600 mb-4">
+          Showing {trains.length} of {totalTrains ?? trains.length} trains for station {apiStation}.
+        </div>
+      )}
 
       {/* 🕒 Loading / Error */}
       {loading && <div className="text-gray-500">Loading live trains...</div>}

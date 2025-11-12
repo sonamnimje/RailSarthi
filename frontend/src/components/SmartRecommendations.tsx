@@ -42,7 +42,7 @@ export default function SmartRecommendations({ recommendations, onAccept, onOver
 	];
 
 	return (
-		<div className="bg-white rounded-2xl p-6 shadow w-full">
+		<div className="bg-blue-50 rounded-2xl p-6 shadow w-full">
 			<div className="text-lg font-semibold text-gray-800 mb-3">Smart Train Prioritization</div>
 			<ul className="space-y-3">
 				{top.map((rec, idx) => (

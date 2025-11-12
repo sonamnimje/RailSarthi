@@ -103,13 +103,13 @@ export default function MapPanel({ positions }: { positions: Position[] }) {
 					<div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
 						<span className="text-white text-sm font-bold">A</span>
 					</div>
-					<span className="text-xs font-semibold text-slate-700 mt-2 bg-white px-2 py-1 rounded-full shadow">Station A</span>
+					<span className="text-xs font-semibold text-slate-700 mt-2 bg-blue-50 px-2 py-1 rounded-full shadow">Station A</span>
 				</div>
 				<div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col items-center z-10">
 					<div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
 						<span className="text-white text-sm font-bold">B</span>
 					</div>
-					<span className="text-xs font-semibold text-slate-700 mt-2 bg-white px-2 py-1 rounded-full shadow">Station B</span>
+					<span className="text-xs font-semibold text-slate-700 mt-2 bg-blue-50 px-2 py-1 rounded-full shadow">Station B</span>
 				</div>
 
 				{/* Moving Trains */}
@@ -133,7 +133,7 @@ export default function MapPanel({ positions }: { positions: Position[] }) {
 								{getTrainIcon(pos.train_id)}
 							</div>
 							{/* Train Info Card */}
-							<div className={`absolute ${cardPosition} bg-white rounded-xl shadow-lg border border-slate-200 p-3 min-w-[140px] text-center z-30`}>
+							<div className={`absolute ${cardPosition} bg-blue-50 rounded-xl shadow-lg border border-slate-200 p-3 min-w-[140px] text-center z-30`}>
 								<div className="text-xs font-bold text-slate-800 mb-1">{pos.name}</div>
 								<div className="text-xs text-slate-600 mb-1">{pos.train_id}</div>
 								<div className={`text-xs font-medium px-2 py-1 rounded-full ${

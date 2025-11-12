@@ -58,7 +58,7 @@ export default function SettingsPage() {
 	}
 
 	return (
-		<div className="min-h-screen bg-white p-8">
+		<div className="min-h-screen bg-blue-50 p-8">
 			<div className="flex items-center justify-between mb-8">
 				<div className="flex items-center">
 					<span className="text-4xl mr-3">
@@ -74,7 +74,7 @@ export default function SettingsPage() {
 
 			<div className="max-w-6xl mx-auto grid gap-6 md:grid-cols-3">
 				{/* User Management */}
-				<section className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+				<section className="bg-blue-50 rounded-2xl shadow-lg p-6 border border-gray-100">
 					<h2 className="text-xl font-semibold text-gray-900 mb-4">User Management</h2>
 					<div className="grid gap-2 mb-4">
 						<input
@@ -105,7 +105,7 @@ export default function SettingsPage() {
 				</section>
 
 				{/* Section Configuration */}
-				<section className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+				<section className="bg-blue-50 rounded-2xl shadow-lg p-6 border border-gray-100">
 					<h2 className="text-xl font-semibold text-gray-900 mb-4">Section Configuration</h2>
 					<form className="grid gap-3 mb-4" onSubmit={addTrack}>
 						<input
@@ -144,7 +144,7 @@ export default function SettingsPage() {
 				</section>
 
 				{/* Model Settings */}
-				<section className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+				<section className="bg-blue-50 rounded-2xl shadow-lg p-6 border border-gray-100">
 					<h2 className="text-xl font-semibold text-gray-900 mb-4">Model Settings</h2>
 					<div className="space-y-5">
 						<div>

@@ -78,7 +78,7 @@ export default function OverridesPage() {
 			
 			{/* AI Learning Metrics */}
 			<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+				<div className="bg-blue-50 rounded-lg shadow-sm border border-gray-200 p-4">
 					<div className="flex items-center">
 						<div className="p-2 bg-blue-100 rounded-lg">
 							<svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,7 +92,7 @@ export default function OverridesPage() {
 					</div>
 				</div>
 				
-				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+				<div className="bg-blue-50 rounded-lg shadow-sm border border-gray-200 p-4">
 					<div className="flex items-center">
 						<div className="p-2 bg-green-100 rounded-lg">
 							<svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,7 +106,7 @@ export default function OverridesPage() {
 					</div>
 				</div>
 				
-				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+				<div className="bg-blue-50 rounded-lg shadow-sm border border-gray-200 p-4">
 					<div className="flex items-center">
 						<div className="p-2 bg-orange-100 rounded-lg">
 							<svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,7 +120,7 @@ export default function OverridesPage() {
 					</div>
 				</div>
 				
-				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+				<div className="bg-blue-50 rounded-lg shadow-sm border border-gray-200 p-4">
 					<div className="flex items-center">
 						<div className="p-2 bg-purple-100 rounded-lg">
 							<svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,7 +136,7 @@ export default function OverridesPage() {
 			</div>
 			
 			
-			<div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+			<div className="bg-blue-50 rounded-lg shadow-sm border border-gray-200 overflow-hidden">
 				<div className="overflow-x-auto">
 					<table className="w-full text-sm text-gray-800">
 						<thead className="bg-blue-100 border-b border-gray-200">
@@ -153,7 +153,7 @@ export default function OverridesPage() {
 								const isOverride = r.action !== r.ai_action
 								const hasReason = r.reason && r.reason.trim() !== ''
 								return (
-									<tr key={r.id} className={`bg-white border-b border-gray-100 ${isOverride ? 'bg-orange-50' : 'bg-green-50'}`}>
+									<tr key={r.id} className={`bg-blue-50 border-b border-gray-100 ${isOverride ? 'bg-orange-50' : 'bg-green-50'}`}>
 										<td className="p-4 border-r border-gray-200 font-mono text-xs">{formatTimestamp(r.timestamp)}</td>
 										<td className="p-4 border-r border-gray-200">
 											<div className="flex items-center gap-2">

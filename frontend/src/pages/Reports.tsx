@@ -36,7 +36,7 @@ function BarChart({ data, max, legendLabel = 'value', color = '#ef4444', tooltip
 						{/* Tooltip */}
 						{i === hoverIdx && (
 							<g transform={`translate(${x + barW - 10}, ${padding.top + 20})`}>
-								<rect x={0} y={-18} rx={6} ry={6} width={90} height={42} fill="#ffffff" stroke="#d1d5db" />
+								<rect x={0} y={-18} rx={6} ry={6} width={90} height={42} fill="#eff6ff" stroke="#d1d5db" />
 								<text x={10} y={-2} className="fill-gray-700 text-sm">{d.label}</text>
 								<text x={10} y={16} className="fill-gray-700 text-xs">{(tooltipLabel ?? legendLabel)} : {d.value}</text>
 							</g>
@@ -100,7 +100,7 @@ function LineChart({ series, labels, max, legendLabel = 'series', color = '#34d3
 						<line x1={x} x2={x} y1={padding.top} y2={height - padding.bottom} stroke="#9ca3af" strokeDasharray="4 4" />
 						<circle cx={x} cy={y} r={6} fill={pointColor} stroke={color} />
 						<g transform={`translate(${Math.min(x + 10, width - 120)}, ${Math.max(padding.top + 10, y - 24)})`}>
-							<rect x={0} y={-14} rx={6} ry={6} width={110} height={42} fill="#ffffff" stroke="#d1d5db" />
+							<rect x={0} y={-14} rx={6} ry={6} width={110} height={42} fill="#eff6ff" stroke="#d1d5db" />
 							<text x={10} y={2} className="fill-gray-700 text-sm">{labels[hoverIdx]}</text>
 							<text x={10} y={20} className="fill-gray-700 text-xs">{legendLabel} : {series[hoverIdx]}</text>
 						</g>
@@ -284,7 +284,7 @@ export default function ReportsPage() {
 	}
 
 	return (
-		<div className="p-6 bg-white text-gray-900">
+		<div className="p-6 bg-blue-50 text-gray-900">
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center gap-2">
 					<span className="text-2xl">📈</span>
@@ -305,19 +305,19 @@ export default function ReportsPage() {
 			</div>
 			{/* KPI Cards */}
 			<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-				<div className="rounded border border-gray-200 bg-white p-4 shadow">
+				<div className="rounded border border-gray-200 bg-blue-50 p-4 shadow">
 					<div className="text-sm text-gray-500">Throughput</div>
 					<div className="text-2xl font-semibold">{kpis.throughput_per_hour ?? '—'}<span className="text-sm ml-1">/hr</span></div>
 				</div>
-				<div className="rounded border border-gray-200 bg-white p-4 shadow">
+				<div className="rounded border border-gray-200 bg-blue-50 p-4 shadow">
 					<div className="text-sm text-gray-500">Avg Delay</div>
 					<div className="text-2xl font-semibold">{kpis.avg_delay_minutes ?? '—'}<span className="text-sm ml-1">mins</span></div>
 				</div>
-				<div className="rounded border border-gray-200 bg-white p-4 shadow">
+				<div className="rounded border border-gray-200 bg-blue-50 p-4 shadow">
 					<div className="text-sm text-gray-500">On-Time %</div>
 					<div className="text-2xl font-semibold">{kpis.on_time_percentage ?? '—'}%</div>
 				</div>
-				<div className="rounded border border-gray-200 bg-white p-4 shadow">
+				<div className="rounded border border-gray-200 bg-blue-50 p-4 shadow">
 					<div className="text-sm text-gray-500">Congestion</div>
 					<div className="text-2xl font-semibold">{kpis.congestion_index !== undefined ? kpis.congestion_index.toFixed(2) : '—'}</div>
 				</div>
@@ -327,17 +327,17 @@ export default function ReportsPage() {
 			)}
 			<div ref={reportRef}>
 				<div className="grid gap-6 md:grid-cols-2">
-					<section className="rounded border border-gray-200 bg-white p-4 shadow-lg">
+					<section className="rounded border border-gray-200 bg-blue-50 p-4 shadow-lg">
 						<h3 className="font-semibold mb-4">Delay Trends</h3>
 						<LineChart labels={delayLabels} series={delaySeries} max={Math.max(...delaySeries, 1)} legendLabel="delay" color="#34d399" pointColor="#10b981" />
 					</section>
-					<section className="rounded border border-gray-200 bg-white p-4 shadow-lg">
+					<section className="rounded border border-gray-200 bg-blue-50 p-4 shadow-lg">
 						<h3 className="font-semibold mb-4">Throughput Comparison</h3>
 						<BarChart data={throughputBar} max={Math.max(...throughputBar.map(d => d.value), 1)} legendLabel="throughput" color="#ef4444" tooltipLabel="throughput" />
 					</section>
 				</div>
 				<div className="mt-6">
-					<section className="rounded border border-gray-200 bg-white p-4 shadow-lg">
+					<section className="rounded border border-gray-200 bg-blue-50 p-4 shadow-lg">
 						<h3 className="font-semibold mb-4">Bottleneck Hotspots</h3>
 						<Heatmap data={heatmapData} xLabels={heatmapX} yLabels={heatmapY} />
 					</section>

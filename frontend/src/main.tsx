@@ -16,6 +16,7 @@ import ReportsPage from './pages/Reports';
 import SettingsPage from './pages/Settings';
 import HomePage from './pages/Home';
 import DashboardPage from './pages/Dashboard';
+import NotificationsPage from './pages/Notifications';
 
 import { Navigate } from 'react-router-dom';
 
@@ -38,6 +39,7 @@ root.render(
 					<Route path="/app/simulation" element={<SimulationPage />} />
 					<Route path="/app/overrides" element={<OverridesPage />} />
 					<Route path="/app/reports" element={<ReportsPage />} />
+					<Route path="/app/notifications" element={<NotificationsPage />} />
 					<Route
 						path="/app/settings"
 						element={

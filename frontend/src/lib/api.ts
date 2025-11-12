@@ -113,11 +113,77 @@ export async function fetchHotspots(hours = 24, top_sections = 4, buckets = 5) {
 	return (await res.json()) as { xLabels: string[]; yLabels: string[]; data: number[][] }
 }
 
+export type LiveTrain = {
+	trainNumber: string
+	trainName: string
+	trainType?: string
+	arrivalTime: string
+	departureTime: string
+	status: string
+	platform_number?: string | number | null
+	train_src?: string | null
+	stop: boolean
+	station_name?: string | null
+	halt?: string | number | null
+	on_time_rating?: string | number | null
+	delay?: string | number | null
+}
+
+export type LiveTrainsResponse = {
+	station: string
+	total_trains: number
+	trains: LiveTrain[]
+}
+
+export async function fetchLiveTrains(params: {
+	fromStationCode: string
+	hours?: number
+	trainNo?: string
+}): Promise<LiveTrainsResponse> {
+	const search = new URLSearchParams()
+	search.set('fromStationCode', params.fromStationCode)
+	if (typeof params.hours === 'number') {
+		search.set('hours', params.hours.toString())
+	}
+	if (params.trainNo) {
+		search.set('trainNo', params.trainNo)
+	}
+
+	const res = await fetch(`${apiBaseUrl}/api/live/live-trains?${search.toString()}`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	})
+
+	const rawBody = await res.text()
+
+	if (!res.ok) {
+		let message = `Failed to fetch live trains (${res.status})`
+		if (rawBody) {
+			try {
+				const maybeJson = JSON.parse(rawBody)
+				if (maybeJson && typeof maybeJson === 'object' && 'detail' in maybeJson) {
+					message = String((maybeJson as { detail: unknown }).detail)
+				} else if (typeof maybeJson === 'string') {
+					message = maybeJson
+				}
+			} catch {
+				message = rawBody
+			}
+		}
+		throw new Error(message)
+	}
+
+	try {
+		return JSON.parse(rawBody) as LiveTrainsResponse
+	} catch {
+		throw new Error('Invalid live trains response payload')
+	}
+}
+
 export type MasterChartItem = {
 	zone: string
 	division: string
 	chart_url: string
-	 csv_url: string
+	csv_url: string
 }
 
 export async function fetchMasterCharts(): Promise<{ charts: MasterChartItem[] }> {
@@ -394,7 +460,9 @@ export async function fetchTrainLogs(params: {
 		if (value !== undefined) searchParams.append(key, value.toString())
 	})
 	
-	const res = await fetch(`${apiBaseUrl}/api/train-logs/logs?${searchParams}`)
+	const res = await fetch(`${apiBaseUrl}/api/train-logs/logs?${searchParams}`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	})
 	if (!res.ok) throw new Error('Failed to fetch train logs')
 	return (await res.json()) as { logs: TrainLog[]; total: number }
 }
@@ -412,7 +480,9 @@ export async function fetchTrainSchedules(params: {
 		if (value !== undefined) searchParams.append(key, value.toString())
 	})
 	
-	const res = await fetch(`${apiBaseUrl}/api/train-logs/schedules?${searchParams}`)
+	const res = await fetch(`${apiBaseUrl}/api/train-logs/schedules?${searchParams}`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	})
 	if (!res.ok) throw new Error('Failed to fetch train schedules')
 	return (await res.json()) as { schedules: TrainSchedule[]; total: number }
 }
@@ -427,13 +497,17 @@ export async function fetchTimelineData(params: {
 		if (value !== undefined) searchParams.append(key, value.toString())
 	})
 	
-	const res = await fetch(`${apiBaseUrl}/api/train-logs/timeline?${searchParams}`)
+	const res = await fetch(`${apiBaseUrl}/api/train-logs/timeline?${searchParams}`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	})
 	if (!res.ok) throw new Error('Failed to fetch timeline data')
 	return (await res.json()) as TimelineData
 }
 
 export async function fetchLogStats(hours = 24) {
-	const res = await fetch(`${apiBaseUrl}/api/train-logs/stats?hours=${hours}`)
+	const res = await fetch(`${apiBaseUrl}/api/train-logs/stats?hours=${hours}`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	})
 	if (!res.ok) throw new Error('Failed to fetch log stats')
 	return (await res.json()) as LogStats
 }

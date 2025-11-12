@@ -102,7 +102,7 @@ export default function TimelineChart({ data, height = 400, embedded = false, co
 		}
 	}
 
-	const containerClass = embedded ? '' : 'w-full rounded-2xl border border-slate-200 bg-white shadow-sm p-5'
+	const containerClass = embedded ? '' : 'w-full rounded-2xl border border-slate-200 bg-blue-50 shadow-sm p-5'
 
 	return (
 		<div className={containerClass}>
@@ -130,7 +130,7 @@ export default function TimelineChart({ data, height = 400, embedded = false, co
 			{/* Timeline */}
 			<div className="relative rounded-xl border border-slate-200 bg-slate-50" style={{ height: `${height}px` }}>
 				{/* Time axis */}
-				<div className="absolute top-0 left-0 right-0 h-10 rounded-t-xl bg-white/70 border-b border-slate-200 flex items-center px-3">
+				<div className="absolute top-0 left-0 right-0 h-10 rounded-t-xl bg-blue-50/70 border-b border-slate-200 flex items-center px-3">
 					<div className="text-xs text-slate-600">Time →</div>
 					<div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent ml-3 relative">
 						{Array.from({ length: 6 }).map((_, i) => (
@@ -168,7 +168,7 @@ export default function TimelineChart({ data, height = 400, embedded = false, co
 						}
 
 						return (
-							<div key={train.trainId} className={`relative ${compact ? 'h-10' : 'h-14'} rounded-xl bg-white border border-slate-200 shadow-xs overflow-hidden`}>
+							<div key={train.trainId} className={`relative ${compact ? 'h-10' : 'h-14'} rounded-xl bg-blue-50 border border-slate-200 shadow-xs overflow-hidden`}>
 								{/* Train label */}
 								<div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-blue-600 z-10">
 									🚂 {train.trainId}
@@ -213,7 +213,7 @@ export default function TimelineChart({ data, height = 400, embedded = false, co
 
 				{/* Legend */}
 				{showLegend && (
-					<div className={`absolute bottom-0 left-0 right-0 ${compact ? 'h-10' : 'h-14'} bg-white/70 border-t border-slate-200 rounded-b-xl px-3 flex items-center gap-3 text-xs`}>
+					<div className={`absolute bottom-0 left-0 right-0 ${compact ? 'h-10' : 'h-14'} bg-blue-50/70 border-t border-slate-200 rounded-b-xl px-3 flex items-center gap-3 text-xs`}>
 						<span className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-slate-100 text-slate-700"><span className="w-2 h-2 rounded-full bg-gray-600 border border-gray-800"/>Planned</span>
 						<span className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-green-100 text-green-700"><span className="w-3 h-3 rounded-full bg-green-500"/>Arrival</span>
 						<span className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-blue-100 text-blue-700"><span className="w-3 h-3 rounded-full bg-blue-500"/>Departure</span>
