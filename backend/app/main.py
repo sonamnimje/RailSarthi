@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .api.routes import ingest, optimizer, simulator, overrides, ws, users, reports, train_logs
+from .api.routes import ingest, optimizer, simulator, overrides, ws, users, reports, train_logs, train_live
 from .db.session import engine, SessionLocal, test_connection
 from .db.models import Base
 from sqlalchemy import text
@@ -60,7 +60,8 @@ def create_app() -> FastAPI:
 	app.include_router(users.router, prefix="/api/users", tags=["users"])
 	app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 	app.include_router(train_logs.router, prefix="/api/train-logs", tags=["train-logs"])
-	app.include_router(ws.router, tags=["ws"])  # exposes /ws/live
+	app.include_router(train_live.router, prefix="/api/live", tags=["live-train"])
+	app.include_router(ws.router, tags=["ws"])# exposes /ws/live
 
 	# Serve generated master charts (PNG, CSV, JSON) as static files
 	# Directory is relative to backend/ working dir: outputs/master_charts

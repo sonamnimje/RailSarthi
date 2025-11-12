@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import KPIsPanel from '../components/KPIsPanel'
 import SmartRecommendations from '../components/SmartRecommendations'
-import ForecastsPanel from '../components/ForecastsPanel'
 import OverrideModal from '../components/OverrideModal'
 import { fetchKpis, fetchRecommendations, type Recommendation, applyOverride } from '../lib/api'
+
+const RailwayMasterChart = lazy(() => import('../components/RailwayMasterChart'))
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [actionMsg, setActionMsg] = useState<string | null>(null)
   const [overrideModal, setOverrideModal] = useState<{ isOpen: boolean; rec: Recommendation | null }>({ isOpen: false, rec: null })
+  const [lastUpdated, setLastUpdated] = useState<number>(Date.now())
 
   useEffect(() => {
     let cancelled = false
@@ -26,8 +28,10 @@ export default function DashboardPage() {
           fetchRecommendations({ section_id: 'S1', lookahead_minutes: 30 }).catch(() => ({ recommendations: [] as Recommendation[] } as any))
         ])
         if (cancelled) return
-        setKpis(kpiResp)
-        setRecs((recResp?.recommendations as Recommendation[]) || [])
+        setKpis(prev => (shallowEqual(prev, kpiResp) ? prev : kpiResp))
+        const incomingRecs = (recResp?.recommendations as Recommendation[]) || []
+        setRecs(prev => (areRecommendationsEqual(prev, incomingRecs) ? prev : incomingRecs))
+        setLastUpdated(Date.now())
       } catch (e: any) {
         if (!cancelled) setError(e?.message || 'Failed to load dashboard')
       } finally {
@@ -39,12 +43,9 @@ export default function DashboardPage() {
     return () => { cancelled = true; clearInterval(interval) }
   }, [])
 
-  const mockForecasts = useMemo(() => ([
-    { icon: '⚠️', message: 'High chance of bottleneck at Section B (3 trains converging).' },
-    { icon: '🌧️', message: 'Weather may cause minor delays near Station C.' }
-  ]), [])
+  const formattedLastUpdated = useMemo(() => new Date(lastUpdated).toLocaleTimeString(), [lastUpdated])
 
-  async function handleAccept(rec: Recommendation) {
+  const handleAccept = useCallback(async (rec: Recommendation) => {
     try {
       setActionMsg(null)
       await applyOverride({
@@ -61,13 +62,13 @@ export default function DashboardPage() {
     } catch (e: any) {
       setActionMsg(e?.message || 'Failed to apply action')
     }
-  }
+  }, [navigate])
 
-  function handleOverride(rec: Recommendation) {
+  const handleOverride = useCallback((rec: Recommendation) => {
     setOverrideModal({ isOpen: true, rec })
-  }
+  }, [])
 
-  async function handleOverrideConfirm(action: string, reason?: string) {
+  const handleOverrideConfirm = useCallback(async (action: string, reason?: string) => {
     if (!overrideModal.rec) return
     
     try {
@@ -88,11 +89,11 @@ export default function DashboardPage() {
     } catch (e: any) {
       setActionMsg(e?.message || 'Failed to apply override')
     }
-  }
+  }, [navigate, overrideModal.rec])
 
-  function handleOverrideClose() {
+  const handleOverrideClose = useCallback(() => {
     setOverrideModal({ isOpen: false, rec: null })
-  }
+  }, [])
 
 
   return (
@@ -103,17 +104,23 @@ export default function DashboardPage() {
           <h2 className="text-4xl font-extrabold">Dashboard</h2>
         </div>
         <div className="text-sm text-gray-600">
-          {loading ? 'Refreshing…' : 'Updated'} {new Date().toLocaleTimeString()}
+          {loading ? 'Refreshing…' : 'Updated'} {formattedLastUpdated}
         </div>
       </div>
 
       {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
       {actionMsg && <div className="mb-4 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">{actionMsg}</div>}
 
-      <div className="flex flex-col gap-6 mb-6">
-        <KPIsPanel kpis={kpis} />
-        <SmartRecommendations recommendations={recs} onAccept={handleAccept} onOverride={handleOverride} />
-        <ForecastsPanel forecasts={mockForecasts} />
+      <div className="mb-6 grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="flex flex-col gap-6">
+          <KPIsPanel kpis={kpis} />
+          <Suspense fallback={<ChartSkeleton />}>
+            <RailwayMasterChart className="self-stretch" />
+          </Suspense>
+        </div>
+        <div className="flex flex-col gap-6">
+          <SmartRecommendations recommendations={recs} onAccept={handleAccept} onOverride={handleOverride} />
+        </div>
       </div>
 
       <OverrideModal
@@ -123,6 +130,49 @@ export default function DashboardPage() {
         trainId={overrideModal.rec?.train_id || ''}
         aiAction={overrideModal.rec?.action || ''}
       />
+    </div>
+  )
+}
+
+function shallowEqual(
+  a: Record<string, unknown> | null | undefined,
+  b: Record<string, unknown> | null | undefined
+): boolean {
+  if (a === b) return true
+  if (!a || !b) return false
+  const keysA = Object.keys(a)
+  const keysB = Object.keys(b)
+  if (keysA.length !== keysB.length) return false
+  for (const key of keysA) {
+    if (a[key] !== b[key]) return false
+  }
+  return true
+}
+
+function areRecommendationsEqual(prev: Recommendation[], next: Recommendation[]): boolean {
+  if (prev === next) return true
+  if (prev.length !== next.length) return false
+  for (let i = 0; i < prev.length; i++) {
+    const a = prev[i]
+    const b = next[i]
+    if (
+      a.train_id !== b.train_id ||
+      a.action !== b.action ||
+      a.reason !== b.reason ||
+      a.eta_change_seconds !== b.eta_change_seconds ||
+      a.platform !== b.platform ||
+      a.priority_score !== b.priority_score
+    ) {
+      return false
+    }
+  }
+  return true
+}
+
+function ChartSkeleton() {
+  return (
+    <div className="flex h-[640px] w-full items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">
+      Loading master chart…
     </div>
   )
 }

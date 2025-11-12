@@ -26,7 +26,7 @@ function Home() {
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         {/* City Skyline Background */}
-        <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-blue-200 to-transparent">
+        <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-blue-200 to-transparent hidden sm:block">
           <div className="absolute bottom-0 left-0 w-full h-24 bg-blue-300 opacity-30">
             {/* Simple city skyline shapes with animation */}
             <div className="absolute bottom-0 left-0 w-8 h-16 bg-blue-400 transition-all duration-1000 hover:h-20"></div>
@@ -43,7 +43,7 @@ function Home() {
         
         {/* Animated Train in background */}
         <div 
-          className="absolute bottom-8 w-32 h-8 bg-gray-300 rounded-lg opacity-40 transition-transform duration-1000"
+          className="absolute bottom-8 w-32 h-8 bg-gray-300 rounded-lg opacity-40 transition-transform duration-1000 hidden sm:block"
           style={{
             left: `${25 + (scrollY * 0.1)}%`,
             transform: `translateX(${Math.sin(scrollY * 0.01) * 20}px)`
@@ -55,21 +55,21 @@ function Home() {
         
         {/* Animated Clouds */}
         <div 
-          className="absolute top-20 w-16 h-8 bg-white rounded-full opacity-60 transition-all duration-3000"
+          className="absolute top-20 w-16 h-8 bg-white rounded-full opacity-60 transition-all duration-3000 hidden sm:block"
           style={{
             right: `${20 + (scrollY * 0.05)}%`,
             transform: `translateX(${Math.sin(scrollY * 0.005) * 30}px)`
           }}
         ></div>
         <div 
-          className="absolute top-32 w-12 h-6 bg-white rounded-full opacity-60 transition-all duration-3000"
+          className="absolute top-32 w-12 h-6 bg-white rounded-full opacity-60 transition-all duration-3000 hidden sm:block"
           style={{
             left: `${20 + (scrollY * 0.03)}%`,
             transform: `translateX(${Math.cos(scrollY * 0.005) * 25}px)`
           }}
         ></div>
         <div 
-          className="absolute top-16 w-20 h-10 bg-white rounded-full opacity-60 transition-all duration-3000"
+          className="absolute top-16 w-20 h-10 bg-white rounded-full opacity-60 transition-all duration-3000 hidden sm:block"
           style={{
             left: `${50 + (scrollY * 0.04)}%`,
             transform: `translateX(${Math.sin(scrollY * 0.007) * 35}px)`
@@ -80,30 +80,30 @@ function Home() {
       {/* Main Hero Section */}
       <main 
         ref={heroRef}
-        className="relative z-10 flex items-center justify-between px-6 py-12 max-w-7xl mx-auto"
+        className="relative z-10 flex flex-col items-center justify-between gap-12 px-4 py-16 sm:px-6 lg:flex-row lg:gap-16 lg:px-8 lg:py-20 max-w-7xl mx-auto"
         style={{
           transform: `translateY(${scrollY * 0.3}px)`,
           opacity: Math.max(0, Math.min(1, 1 - (scrollY / 500)))
         }}
       >
         {/* Left Side - Text Content */}
-        <div className="flex-1 max-w-2xl animate-fade-in">
+        <div className="flex-1 w-full max-w-2xl animate-fade-in text-center lg:text-left">
           <h1 
-            className="text-6xl font-bold text-teal-700 mb-2 transition-all duration-500 hover:text-teal-800 hover:scale-105 cursor-default"
+            className="text-4xl font-bold text-teal-700 mb-4 transition-all duration-500 hover:text-teal-800 hover:scale-105 cursor-default sm:text-5xl lg:text-6xl"
             style={{
               textShadow: '2px 2px 4px rgba(0,0,0,0.1)'
             }}
           >
             RailAnukriti
           </h1>
-          <p className="text-2xl text-teal-500 mb-6 animate-slide-in-left">AI-Powered Smart Train Traffic Optimizer</p>
-          <p className="text-gray-600 text-lg mb-8 leading-relaxed animate-slide-in-left-delay">
+          <p className="text-xl text-teal-500 mb-6 animate-slide-in-left sm:text-2xl">AI-Powered Smart Train Traffic Optimizer</p>
+          <p className="text-gray-600 text-base mb-8 leading-relaxed animate-slide-in-left-delay sm:text-lg">
             Maximize section throughput using AI-powered precise train traffic control. 
             Our intelligent system optimizes train precedence, crossings, and platform allocation 
             to minimize delays and improve efficiency across Indian Railways.
           </p>
           <button
-            className="px-8 py-4 bg-orange-500 text-white font-bold text-lg rounded-lg hover:bg-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transform"
+            className="w-full px-8 py-4 bg-orange-500 text-white font-bold text-lg rounded-lg hover:bg-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transform sm:w-auto"
             onClick={() => setShowModal(true)}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'scale(1.1) translateY(-2px)';
@@ -117,9 +117,9 @@ function Home() {
         </div>
 
         {/* Right Side - Train Image */}
-        <div className="flex-1 flex justify-center items-center">
+        <div className="flex-1 flex justify-center items-center w-full">
           <div 
-            className="relative w-full max-w-2xl transition-transform duration-500 hover:scale-105"
+            className="relative w-full max-w-xl transition-transform duration-500 hover:scale-105 sm:max-w-2xl"
             style={{
               transform: `translateY(${-scrollY * 0.2}px) rotateY(${Math.sin(scrollY * 0.01) * 2}deg)`
             }}
