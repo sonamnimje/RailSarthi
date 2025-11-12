@@ -208,6 +208,87 @@ The system implements fine-grained access control for different user roles:
 - **Authorization:** Route-level protection using `require_role()` dependency injection
 
 
+Every critical action is logged for compliance and accountability:
+
+1. **AI Recommendations:**
+   - All AI recommendations are logged in `optimizer_decisions` table
+   - Stores request parameters, response, and latency metrics
+   - Timestamped for traceability
+
+2. **Human Overrides:**
+   - Every override action is recorded in `overrides` table
+   - Captures: controller_id, train_id, AI action, human action, reason, timestamp
+   - Enables analysis of override patterns and AI accuracy
+
+3. **User Actions:**
+   - Login/logout events logged with timestamps
+   - Failed authentication attempts tracked
+   - User activity monitoring for security audits
+
+4. **Data Access:**
+   - Database queries logged for sensitive operations
+   - API access patterns monitored
+   - Anomaly detection for unauthorized access attempts
+
+### Privacy & Data Protection
+
+- **Data Minimization:** Only necessary operational data is stored
+- **Data Retention:** Configurable retention policies for historical data
+- **Access Logging:** All data access is logged for audit purposes
+- **Secure Credentials:** Database credentials and API keys stored in environment variables, never in code
+
+---
+
+## 🤖 AI Explainability
+
+RailAnukriti provides transparent, explainable AI recommendations to build controller trust and enable informed decision-making.
+
+### How AI Decisions Work
+
+The optimizer uses a multi-factor scoring system that considers:
+
+1. **Historical Delay Patterns:** Trains with consistent delays receive higher priority
+2. **Platform Conflicts:** Detects and resolves platform allocation conflicts
+3. **Section Congestion:** Adjusts recommendations based on real-time congestion levels
+4. **Train Priority:** Express trains prioritized over freight during peak hours
+
+### Explainability Example
+
+**Scenario:** Two trains (Train A: Express 12002, Train B: Freight 2299) are approaching the same section simultaneously.
+
+**AI Recommendation:**
+```
+Action: Give precedence to Train 12002 over Train 2299
+Reason: "Train 12002: historical delay 15.0m (score +0.50); 
+         platform conflict at P3 (score +0.30); 
+         section congestion 4 trains (score +0.20)"
+Priority Score: 1.00
+Impact: Saves ~45 mins cumulative delay, throughput +3%, fuel -2%
+```
+
+**Explanation:** 
+The AI prioritized Train A (Express 12002) over Train B (Freight 2299) because:
+- Train A is an express train with higher passenger priority
+- Train A has historical delay patterns that need mitigation
+- Train B (freight) has buffer time available and can afford a short delay
+- Giving precedence to Train A reduces cumulative network delay and improves overall throughput
+- The decision prevents a platform conflict at the upcoming station (Platform 3)
+
+**Human Override Scenario:**
+If a controller overrides this decision, the system:
+1. Logs the override with reason (e.g., "Emergency freight priority")
+2. Learns from the override to improve future recommendations
+3. Maintains audit trail for compliance
+
+### Explainability Features
+
+- **Reasoning Display:** Each recommendation includes a human-readable reason
+- **Priority Scores:** Transparent scoring (0.0-1.0) shows recommendation confidence
+- **Impact Metrics:** Shows expected time savings, throughput improvements, fuel savings
+- **Historical Context:** Explains how past data influenced the decision
+- **Override Learning:** System adapts based on controller overrides
+
+---
 
 ## 🤝 Team RailAnukriti
 
