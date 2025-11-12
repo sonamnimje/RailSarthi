@@ -138,46 +138,6 @@ cd frontend
 npm run dev
 ```
 
--
-
-## 📡 Data Integration Plan
-
-RailAnukriti integrates with Indian Railways systems through secure APIs to ingest real-time operational data:
-
-### Data Sources
-
-1. **Train Timetable Data**
-   - Planned schedules (arrival/departure times, platforms)
-   - Route information and station sequences
-   - Train classifications (Express, Freight, Local, etc.)
-   - **Integration:** REST API endpoints (`/api/ingest/schedules`) with batch ingestion support
-
-2. **Real-Time Train Position Data**
-   - GPS-based location tracking (location_km, speed_kmph)
-   - Block section occupancy (planned_block_id, actual_block_id)
-   - Section-wise train movements
-   - **Integration:** Real-time WebSocket streams and batch API (`/api/ingest/positions`)
-
-3. **Signal & Control Room Data**
-   - Signal status and block section availability
-   - Platform allocation status
-   - Control room logs and event timestamps
-   - **Integration:** Event-driven API ingestion with event types (arrival, departure, delay, status_change)
-
-4. **Historical Performance Data**
-   - Past delay patterns and congestion metrics
-   - Historical override decisions and outcomes
-   - Section throughput statistics
-   - **Integration:** Time-series database (TimescaleDB) for efficient querying
-
-### Secure Connection Architecture
-
-- **API Authentication:** JWT-based authentication with role-based access control (RBAC)
-- **Data Encryption:** All API communications use TLS/HTTPS (WSS for WebSockets)
-- **API Gateway:** FastAPI backend serves as a secure gateway with CORS protection
-- **Database Security:** Encrypted connections to PostgreSQL/TimescaleDB with credential management via environment variables
-- **Data Validation:** Pydantic models validate all ingested data before persistence
-
 
 ## 🔒 Security & Privacy
 
@@ -252,43 +212,6 @@ The optimizer uses a multi-factor scoring system that considers:
 3. **Section Congestion:** Adjusts recommendations based on real-time congestion levels
 4. **Train Priority:** Express trains prioritized over freight during peak hours
 
-### Explainability Example
-
-**Scenario:** Two trains (Train A: Express 12002, Train B: Freight 2299) are approaching the same section simultaneously.
-
-**AI Recommendation:**
-```
-Action: Give precedence to Train 12002 over Train 2299
-Reason: "Train 12002: historical delay 15.0m (score +0.50); 
-         platform conflict at P3 (score +0.30); 
-         section congestion 4 trains (score +0.20)"
-Priority Score: 1.00
-Impact: Saves ~45 mins cumulative delay, throughput +3%, fuel -2%
-```
-
-**Explanation:** 
-The AI prioritized Train A (Express 12002) over Train B (Freight 2299) because:
-- Train A is an express train with higher passenger priority
-- Train A has historical delay patterns that need mitigation
-- Train B (freight) has buffer time available and can afford a short delay
-- Giving precedence to Train A reduces cumulative network delay and improves overall throughput
-- The decision prevents a platform conflict at the upcoming station (Platform 3)
-
-**Human Override Scenario:**
-If a controller overrides this decision, the system:
-1. Logs the override with reason (e.g., "Emergency freight priority")
-2. Learns from the override to improve future recommendations
-3. Maintains audit trail for compliance
-
-### Explainability Features
-
-- **Reasoning Display:** Each recommendation includes a human-readable reason
-- **Priority Scores:** Transparent scoring (0.0-1.0) shows recommendation confidence
-- **Impact Metrics:** Shows expected time savings, throughput improvements, fuel savings
-- **Historical Context:** Explains how past data influenced the decision
-- **Override Learning:** System adapts based on controller overrides
-
----
 
 ## 🤝 Team RailAnukriti
 
