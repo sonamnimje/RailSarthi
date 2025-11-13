@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { signup, login, fetchMe } from '../lib/api';
+import PasswordGuide from '../components/PasswordGuide';
+import TextCaptcha from '../components/TextCaptcha';
 
 const indianRailwayZones = [
 	'Central Railway',
@@ -53,11 +55,17 @@ export default function SignupPage({ onSuccess }: { onSuccess: () => void }) {
 	});
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [captchaId, setCaptchaId] = useState<string>('');
+	const [captchaAnswer, setCaptchaAnswer] = useState<string>('');
 // Removed agree state for Terms & Conditions
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		setError(null);
+		if (!captchaId || !captchaAnswer) {
+			setError('Please complete the CAPTCHA verification');
+			return;
+		}
 		if (form.password !== form.confirm) {
 			setError('Passwords do not match');
 			return;
@@ -83,7 +91,10 @@ export default function SignupPage({ onSuccess }: { onSuccess: () => void }) {
 		}
 		setLoading(true);
 		try {
-			   await signup(form.email, form.password, form.role);
+			   await signup(form.email, form.password, form.role, captchaId, captchaAnswer);
+			   // After successful signup, login automatically (login CAPTCHA will be handled separately if needed)
+			   // For now, we'll skip CAPTCHA on auto-login after signup
+			   // In a production system, you might want to require CAPTCHA here too
 			   await login(form.email, form.password);
 			   await fetchMe();
 			   onSuccess();
@@ -91,12 +102,23 @@ export default function SignupPage({ onSuccess }: { onSuccess: () => void }) {
 			   // Show a friendly message if user already exists
 			   if (typeof e.message === 'string' && e.message.includes('Username already exists')) {
 				   setError('User already registered');
-			   } else {
+			   } else if (typeof e.message === 'string' && e.message.includes('Password')) {
+				   // Password validation errors from server
 				   setError(e.message);
+			   } else if (typeof e.message === 'string' && e.message.includes('CAPTCHA')) {
+				   setError(e.message);
+			   } else {
+				   setError(e.message || 'Signup failed. Please check your information and try again.');
 			   }
 		   } finally {
 			   setLoading(false);
 		   }
+	}
+
+	function handleCaptchaVerify(id: string, answer: string) {
+		setCaptchaId(id);
+		setCaptchaAnswer(answer);
+		setError(null);
 	}
 
 	return (
@@ -129,18 +151,12 @@ export default function SignupPage({ onSuccess }: { onSuccess: () => void }) {
 							required
 						/>
 					</div>
-					<div className="flex flex-col gap-2">
-						<label className="text-sm text-white/90 font-medium">PASSWORD</label>
-						<input
-							type="password"
-							className="rounded-lg px-4 py-3 border border-white/20 focus:border-white/40 focus:ring-2 focus:ring-white/20 outline-none bg-white/90 text-gray-900 placeholder:text-gray-500"
-							placeholder="Enter your password"
-							value={form.password}
-							onChange={e => setForm({ ...form, password: e.target.value })}
-							autoComplete="new-password"
-							required
-						/>
-					</div>
+					<PasswordGuide
+						value={form.password}
+						onChange={(value) => setForm({ ...form, password: value })}
+						userEmail={form.email}
+						userName={form.name}
+					/>
 					<div className="flex flex-col gap-2">
 						<label className="text-sm text-white/90 font-medium">CONFIRM PASSWORD</label>
 						<input
@@ -314,9 +330,13 @@ export default function SignupPage({ onSuccess }: { onSuccess: () => void }) {
 							)}
 						</div>
 					)}
+					<TextCaptcha
+						onVerify={handleCaptchaVerify}
+						onError={(err) => setError(err)}
+					/>
 					<button
 						className="w-full rounded-lg px-4 py-3 bg-blue-600 text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60 shadow-md"
-						disabled={loading}
+						disabled={loading || !captchaId || !captchaAnswer}
 						type="submit"
 					>
 						{loading ? 'Signing up…' : 'Sign Up'}

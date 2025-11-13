@@ -1,25 +1,42 @@
 import React, { useState } from 'react';
 import { login, fetchMe } from '../lib/api';
+import TextCaptcha from '../components/TextCaptcha';
 
 
 export default function LoginPage({ onSuccess }: { onSuccess: () => void }) {
 	const [auth, setAuth] = useState({ username: '', password: '' });
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [captchaId, setCaptchaId] = useState<string>('');
+	const [captchaAnswer, setCaptchaAnswer] = useState<string>('');
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
-		setLoading(true);
 		setError(null);
+		if (!captchaId || !captchaAnswer) {
+			setError('Please complete the CAPTCHA verification');
+			return;
+		}
+		setLoading(true);
 		try {
-			await login(auth.username, auth.password);
+			await login(auth.username, auth.password, captchaId, captchaAnswer);
 			await fetchMe();
 			onSuccess();
 		} catch (e: any) {
-			setError(e.message);
+			if (typeof e.message === 'string' && e.message.includes('CAPTCHA')) {
+				setError(e.message);
+			} else {
+				setError(e.message);
+			}
 		} finally {
 			setLoading(false);
 		}
+	}
+
+	function handleCaptchaVerify(id: string, answer: string) {
+		setCaptchaId(id);
+		setCaptchaAnswer(answer);
+		setError(null);
 	}
 
 	return (
@@ -53,9 +70,13 @@ export default function LoginPage({ onSuccess }: { onSuccess: () => void }) {
 							required
 						/>
 					</div>
+					<TextCaptcha
+						onVerify={handleCaptchaVerify}
+						onError={(err) => setError(err)}
+					/>
 					<button
 						className="w-full rounded-lg px-4 py-3 bg-blue-600 text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60 shadow-md"
-						disabled={loading}
+						disabled={loading || !captchaId || !captchaAnswer}
 						type="submit"
 					>
 						{loading ? 'Signing in…' : 'Sign In'}

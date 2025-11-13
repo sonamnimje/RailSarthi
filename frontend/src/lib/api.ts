@@ -194,10 +194,21 @@ export async function fetchMasterCharts(): Promise<{ charts: MasterChartItem[] }
 	return (await res.json()) as { charts: MasterChartItem[] }
 }
 
-export async function login(username: string, password: string) {
+export async function login(
+	username: string, 
+	password: string,
+	captchaId?: string,
+	captchaAnswer?: string
+) {
 	const form = new URLSearchParams()
 	form.append('username', username)
 	form.append('password', password)
+	if (captchaId) {
+		form.append('captcha_id', captchaId)
+	}
+	if (captchaAnswer) {
+		form.append('captcha_answer', captchaAnswer)
+	}
 	
 	let res: Response
 	try {
@@ -250,13 +261,25 @@ export async function fetchMe() {
 }
 
 
-export async function signup(username: string, password: string, role: 'controller' | 'admin' = 'controller') {
+export async function signup(
+	username: string, 
+	password: string, 
+	role: 'controller' | 'admin' = 'controller',
+	captchaId?: string,
+	captchaAnswer?: string
+) {
 	let res: Response
 	try {
 		res = await fetch(`${apiBaseUrl}/api/users/signup`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ username, password, role }),
+			body: JSON.stringify({ 
+				username, 
+				password, 
+				role,
+				captcha_id: captchaId,
+				captcha_answer: captchaAnswer
+			}),
 		})
 	} catch (error: any) {
 		// Common browser message when CORS or server is unreachable
@@ -270,13 +293,47 @@ export async function signup(username: string, password: string, role: 'controll
 		// Try to extract a helpful message
 		try {
 			const maybeJson = await res.json()
-			const detail = (maybeJson && (maybeJson.detail || maybeJson.message)) as string | undefined
-			if (detail) {
-				throw new Error(detail)
+			// Handle structured validation errors (e.g., password validation)
+			if (maybeJson && typeof maybeJson === 'object') {
+				// FastAPI 422 validation errors come as { detail: [{ loc: [...], msg: "...", type: "..." }] }
+				if (maybeJson.detail && Array.isArray(maybeJson.detail)) {
+					const passwordErrors = maybeJson.detail
+						.filter((err: any) => err.loc && err.loc.includes('password'))
+						.map((err: any) => err.msg || 'Password validation failed')
+					if (passwordErrors.length > 0) {
+						throw new Error(passwordErrors.join(' '))
+					}
+					// If no password-specific errors, use first error message
+					if (maybeJson.detail.length > 0 && maybeJson.detail[0].msg) {
+						throw new Error(maybeJson.detail[0].msg)
+					}
+				}
+				// Handle object-style detail (e.g., { detail: { password: ["error1", "error2"] } })
+				if (maybeJson.detail && typeof maybeJson.detail === 'object' && !Array.isArray(maybeJson.detail)) {
+					if (maybeJson.detail.password && Array.isArray(maybeJson.detail.password)) {
+						throw new Error(maybeJson.detail.password.join(' '))
+					}
+					// Or as a single detail string
+					if (typeof maybeJson.detail === 'string') {
+						throw new Error(maybeJson.detail)
+					}
+				}
+				// Fallback to detail or message
+				const detail = (maybeJson.detail || maybeJson.message) as string | undefined
+				if (detail && typeof detail === 'string') {
+					throw new Error(detail)
+				}
 			}
-		} catch {
+		} catch (error: any) {
+			// If we already threw an error with a message, re-throw it
+			if (error instanceof Error && error.message) {
+				throw error
+			}
 			// Fallbacks for common statuses
-			if (res.status === 502) {
+			if (res.status === 422) {
+				// Pydantic validation errors (422 Unprocessable Entity)
+				throw new Error('Password validation failed. Please check the password requirements.')
+			} else if (res.status === 502) {
 				throw new Error('Server is temporarily unavailable (502 Bad Gateway). Please try again later.')
 			} else if (res.status === 503) {
 				throw new Error('Service unavailable. Database connection error.')
