@@ -1,15 +1,14 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import KPIsPanel from '../components/KPIsPanel'
+// KPIs panel (performance metrics) removed from dashboard
 import SmartRecommendations from '../components/SmartRecommendations'
 import OverrideModal from '../components/OverrideModal'
-import { fetchKpis, fetchRecommendations, type Recommendation, applyOverride } from '../lib/api'
+import { fetchRecommendations, type Recommendation, applyOverride } from '../lib/api'
 
 const RailwayMasterChart = lazy(() => import('../components/RailwayMasterChart'))
 
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const [kpis, setKpis] = useState<{ throughput_per_hour?: number; avg_delay_minutes?: number; congestion_index?: number; on_time_percentage?: number } | null>(null)
   const [recs, setRecs] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -23,12 +22,8 @@ export default function DashboardPage() {
       setLoading(true)
       setError(null)
       try {
-        const [kpiResp, recResp] = await Promise.all([
-          fetchKpis().catch(() => null),
-          fetchRecommendations({ section_id: 'S1', lookahead_minutes: 30 }).catch(() => ({ recommendations: [] as Recommendation[] } as any))
-        ])
+        const recResp = await fetchRecommendations({ section_id: 'S1', lookahead_minutes: 30 }).catch(() => ({ recommendations: [] as Recommendation[] } as any))
         if (cancelled) return
-        setKpis(prev => (shallowEqual(prev, kpiResp) ? prev : kpiResp))
         const incomingRecs = (recResp?.recommendations as Recommendation[]) || []
         setRecs(prev => (areRecommendationsEqual(prev, incomingRecs) ? prev : incomingRecs))
         setLastUpdated(Date.now())
@@ -111,15 +106,23 @@ export default function DashboardPage() {
       {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
       {actionMsg && <div className="mb-4 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">{actionMsg}</div>}
 
-      <div className="mb-6 grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-6">
-          <KPIsPanel kpis={kpis} />
+      <div className="mb-6 flex flex-col gap-6">
+        <div className="flex flex-col gap-6 w-full">
           <Suspense fallback={<ChartSkeleton />}>
-            <RailwayMasterChart className="self-stretch" />
+            {/* Master chart stays on top, larger height. Use a responsive 80vh container so users can read the chart comfortably. */}
+            <div className="w-full h-[80vh] p-4 bg-white rounded-2xl shadow-md">
+              <RailwayMasterChart height="100%" className="h-full w-full" />
+            </div>
           </Suspense>
         </div>
-        <div className="flex flex-col gap-6">
+
+        <div className="flex flex-col gap-6 w-full">
+          {/* Recommendations below the chart */}
           <SmartRecommendations recommendations={recs} onAccept={handleAccept} onOverride={handleOverride} />
+        </div>
+
+        <div className="flex flex-col gap-6 w-full">
+          {/* Performance metrics (KPIs) removed */}
         </div>
       </div>
 
@@ -134,20 +137,7 @@ export default function DashboardPage() {
   )
 }
 
-function shallowEqual(
-  a: Record<string, unknown> | null | undefined,
-  b: Record<string, unknown> | null | undefined
-): boolean {
-  if (a === b) return true
-  if (!a || !b) return false
-  const keysA = Object.keys(a)
-  const keysB = Object.keys(b)
-  if (keysA.length !== keysB.length) return false
-  for (const key of keysA) {
-    if (a[key] !== b[key]) return false
-  }
-  return true
-}
+
 
 function areRecommendationsEqual(prev: Recommendation[], next: Recommendation[]): boolean {
   if (prev === next) return true
@@ -171,7 +161,7 @@ function areRecommendationsEqual(prev: Recommendation[], next: Recommendation[])
 
 function ChartSkeleton() {
   return (
-    <div className="flex h-[640px] w-full items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">
+    <div className="flex h-[80vh] w-full items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">
       Loading master chart…
     </div>
   )

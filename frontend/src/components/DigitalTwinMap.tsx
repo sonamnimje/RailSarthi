@@ -26,20 +26,26 @@ function Header() {
 	);
 }
 
-function Track({ children }: { children: React.ReactNode }) {
+function Track({ children, zoom }: { children: React.ReactNode; zoom: number }) {
+	// Outer container allows horizontal panning when zoomed
 	return (
-		<div className="relative w-full h-32 flex items-center">
-			<div className="absolute left-16 right-16 top-1/2 -translate-y-1/2 h-[8px] bg-gray-300 rounded-full shadow-inner" />
-			{/* Stations */}
-			<div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col items-center">
-				<div className="w-6 h-6 rounded-full bg-blue-600 shadow" />
-				<span className="text-sm mt-1 text-gray-700">Station A</span>
+		<div className="relative w-full h-32 flex items-center overflow-x-auto">
+			{/* inner track scales horizontally by setting width to zoom*100% */}
+			<div className="relative h-full" style={{ width: `${Math.max(100, zoom * 100)}%` }}>
+				<div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-[8px] bg-gray-300 rounded-full shadow-inner" />
+
+				{/* Stations positioned at the ends of the inner track */}
+				<div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col items-center">
+					<div className="w-6 h-6 rounded-full bg-blue-600 shadow" />
+					<span className="text-sm mt-1 text-gray-700">Station A</span>
+				</div>
+				<div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center">
+					<div className="w-6 h-6 rounded-full bg-blue-600 shadow" />
+					<span className="text-sm mt-1 text-gray-700">Station B</span>
+				</div>
+
+				{children}
 			</div>
-			<div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center">
-				<div className="w-6 h-6 rounded-full bg-blue-600 shadow" />
-				<span className="text-sm mt-1 text-gray-700">Station B</span>
-			</div>
-			{children}
 		</div>
 	);
 }
@@ -80,6 +86,15 @@ function Legend() {
 
 export default function DigitalTwinMap() {
 	const [trains, setTrains] = useState<TrainItem[]>(initialTrains);
+	const [zoom, setZoom] = useState<number>(1);
+
+	function increaseZoom() {
+		setZoom(z => Math.min(2, +(z + 0.1).toFixed(2)));
+	}
+
+	function decreaseZoom() {
+		setZoom(z => Math.max(0.6, +(z - 0.1).toFixed(2)));
+	}
 
 	useEffect(() => {
 		const interval = setInterval(() => {
@@ -96,11 +111,34 @@ export default function DigitalTwinMap() {
 	return (
 		<div className="bg-blue-50 rounded-2xl shadow p-8 w-full">
 			<Header />
-			<Track>
+
+			{/* Zoom controls */}
+			<div className="absolute right-8 top-8 flex flex-col gap-2 z-20">
+				<button
+					className="bg-white p-2 rounded-md shadow border text-sm"
+					onClick={increaseZoom}
+					aria-label="Zoom in"
+					title="Zoom in"
+				>
+					+
+				</button>
+				<button
+					className="bg-white p-2 rounded-md shadow border text-sm"
+					onClick={decreaseZoom}
+					aria-label="Zoom out"
+					title="Zoom out"
+				>
+					−
+				</button>
+			</div>
+
+			<Track zoom={zoom}>
 				{trains.map(train => (
+					// Train positions are percentages of the inner track width (0-100)
 					<TrainMarker key={train.id} train={train} />
 				))}
 			</Track>
+			<div className="mt-4 text-sm text-gray-600">Zoom: {Math.round(zoom * 100)}%</div>
 			<Legend />
 		</div>
 	);

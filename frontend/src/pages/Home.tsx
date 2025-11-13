@@ -101,7 +101,7 @@ function Home() {
           opacity: Math.max(0, Math.min(1, 1 - (scrollY / 500)))
         }}
       >
-        <div className="hero-content">
+  <div className="hero-content group">
           <h1 
             className="text-4xl font-bold text-blue-900 mb-3 transition-all duration-500 hover:scale-105 cursor-default sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl"
             style={{
@@ -111,9 +111,11 @@ function Home() {
           >
             RailAnukriti
           </h1>
-          <p className="text-lg text-black font-bold mb-4 animate-slide-in-left sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl">Empowering Indian Railways<br />with Intelligence & Innovation.</p>
+          <p className="text-lg text-white font-bold mb-4 animate-slide-in-left sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl text-shadow transition-transform duration-300 ease-out group-hover:translate-x-1 group-hover:scale-105 group-hover:text-yellow-200 group-hover:drop-shadow-xl">
+            Empowering Indian Railways<br />with Intelligence & Innovation.
+          </p>
           <button
-            className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-orange-500 px-6 py-2.5 text-base font-semibold text-white shadow-lg transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500 hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-xl active:scale-95 sm:w-auto sm:px-8 sm:py-3 sm:text-lg md:text-xl lg:text-2xl"
+            className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-green-500 px-6 py-2.5 text-base font-semibold text-white shadow-lg transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500 hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-xl active:scale-95 sm:w-auto sm:px-8 sm:py-3 sm:text-lg md:text-xl lg:text-2xl"
             onClick={() => setShowModal(true)}
             aria-haspopup="dialog"
             aria-expanded={showModal}

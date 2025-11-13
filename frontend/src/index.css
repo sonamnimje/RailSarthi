@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 html, body, #root { height: 100%; }
-body { @apply bg-blue-50 text-gray-900 text-base sm:text-lg md:text-xl lg:text-2xl; }
+body { @apply bg-blue-50 text-white text-base sm:text-lg md:text-xl lg:text-2xl; }
 
 @layer utilities {
 	.auth-bg {
@@ -266,6 +266,10 @@ body { @apply bg-blue-50 text-gray-900 text-base sm:text-lg md:text-xl lg:text-2
 	padding-left: 120px;          /* Increased from 80px to move content right */
 	transform: translateY(-40px); /* Keeps it slightly above center */
 	color: white;
+}
+
+.text-shadow {
+	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(0, 0, 0, 0.3);
 }
 
 

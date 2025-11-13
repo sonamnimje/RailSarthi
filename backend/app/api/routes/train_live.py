@@ -88,6 +88,23 @@ async def get_live_trains(
     Fetch real-time trains arriving/departing from a station using RapidAPI IRCTC1.
     Normalizes times and ensures consistent fields for frontend.
     """
+    # Validate station code
+    if not fromStationCode or not fromStationCode.strip():
+        raise HTTPException(status_code=400, detail="Station code cannot be empty")
+    
+    fromStationCode = fromStationCode.strip().upper()
+    
+    # Validate hours parameter
+    if hours < 1 or hours > 24:
+        raise HTTPException(status_code=400, detail="Hours must be between 1 and 24")
+    
+    # Check API key is available
+    if not RAPIDAPI_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="RapidAPI key is not configured. Please set RAPIDAPI_KEY environment variable."
+        )
+    
     url = f"https://{RAPIDAPI_HOST}/api/v3/getLiveStation"
     headers = {
         "x-rapidapi-key": RAPIDAPI_KEY,
@@ -103,44 +120,85 @@ async def get_live_trains(
             response = await client.get(url, headers=headers, params=params)
 
         if response.status_code != 200:
+            error_text = response.text[:500] if response.text else "No error message"
             raise HTTPException(
                 status_code=response.status_code,
-                detail=f"RapidAPI error: {response.text}"
+                detail=f"RapidAPI error: {error_text}"
             )
 
-        data = response.json()
+        try:
+            data = response.json()
+        except Exception as json_error:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Invalid JSON response from RapidAPI: {str(json_error)}"
+            )
 
-        if not data.get("status") or not data.get("data"):
-            raise HTTPException(status_code=404, detail="No train data found for this station.")
+        # Check if response has expected structure
+        if not isinstance(data, dict):
+            raise HTTPException(
+                status_code=502,
+                detail=f"Unexpected response format from RapidAPI: expected dict, got {type(data).__name__}"
+            )
 
-        trains = data["data"]
+        # Check status field
+        if not data.get("status"):
+            error_msg = data.get("message") or data.get("error") or "Unknown error from RapidAPI"
+            raise HTTPException(
+                status_code=404,
+                detail=f"No train data found: {error_msg}"
+            )
+
+        # Check data field exists and is a list
+        trains_data = data.get("data")
+        if trains_data is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No train data found for this station."
+            )
+
+        if not isinstance(trains_data, list):
+            raise HTTPException(
+                status_code=502,
+                detail=f"Unexpected data format: expected list, got {type(trains_data).__name__}"
+            )
+
+        trains = trains_data
 
         # Optional filter by train number
         if trainNo:
-            trains = [t for t in trains if t.get("trainNumber") == trainNo]
+            trains = [t for t in trains if isinstance(t, dict) and t.get("trainNumber") == trainNo]
             if not trains:
                 raise HTTPException(status_code=404, detail=f"Train {trainNo} not found at {fromStationCode}.")
 
         # Normalize train data for frontend
         normalized_trains = []
         for t in trains:
-            arrival_raw = _extract_field(t, "arrivalTime", "arriveTime", "arrival_time", default=None)
-            departure_raw = _extract_field(t, "departureTime", "departTime", "departure_time", default=None)
-            normalized_trains.append({
-                "trainNumber": _extract_field(t, "trainNumber", "train_no", "train_no_h1"),
-                "trainName": _extract_field(t, "trainName", "train_name"),
-                "trainType": _extract_field(t, "trainType", "train_type"),
-                "arrivalTime": convert_time(arrival_raw if arrival_raw is not None else "-"),
-                "departureTime": convert_time(departure_raw if departure_raw is not None else "-"),
-                "status": "Scheduled" if (arrival_raw not in (None, "00:00")) else "Origin",
-                "platform_number": _extract_field(t, "platform_number", "platformNumber", "platform"),
-                "train_src": _extract_field(t, "train_src", "trainSrc", "train_source", "trainSource"),
-                "stop": _normalize_stop(_extract_field(t, "stop", "is_stop", "isStop", "stoppage", default=None)),
-                "station_name": _extract_field(t, "station_name", "stationName", "station_name_h1"),
-                "halt": _extract_field(t, "halt", "halt_minutes", "haltMin", "halt_min"),
-                "on_time_rating": _extract_field(t, "on_time_rating", "onTimeRating", "on_time_rating_h1"),
-                "delay": _extract_field(t, "delay", "delay_arrival", "delay_h1", default=0)
-            })
+            if not isinstance(t, dict):
+                continue  # Skip invalid entries
+            
+            try:
+                arrival_raw = _extract_field(t, "arrivalTime", "arriveTime", "arrival_time", default=None)
+                departure_raw = _extract_field(t, "departureTime", "departTime", "departure_time", default=None)
+                normalized_trains.append({
+                    "trainNumber": _extract_field(t, "trainNumber", "train_no", "train_no_h1"),
+                    "trainName": _extract_field(t, "trainName", "train_name"),
+                    "trainType": _extract_field(t, "trainType", "train_type"),
+                    "arrivalTime": convert_time(arrival_raw if arrival_raw is not None else "-"),
+                    "departureTime": convert_time(departure_raw if departure_raw is not None else "-"),
+                    "status": "Scheduled" if (arrival_raw not in (None, "00:00")) else "Origin",
+                    "platform_number": _extract_field(t, "platform_number", "platformNumber", "platform"),
+                    "train_src": _extract_field(t, "train_src", "trainSrc", "train_source", "trainSource"),
+                    "stop": _normalize_stop(_extract_field(t, "stop", "is_stop", "isStop", "stoppage", default=None)),
+                    "station_name": _extract_field(t, "station_name", "stationName", "station_name_h1"),
+                    "halt": _extract_field(t, "halt", "halt_minutes", "haltMin", "halt_min"),
+                    "on_time_rating": _extract_field(t, "on_time_rating", "onTimeRating", "on_time_rating_h1"),
+                    "delay": _extract_field(t, "delay", "delay_arrival", "delay_h1", default=0)
+                })
+            except Exception as train_error:
+                # Log but continue processing other trains
+                print(f"Warning: Error processing train entry: {train_error}, data: {t}")
+                continue
 
         return {
             "station": fromStationCode,
@@ -148,9 +206,18 @@ async def get_live_trains(
             "trains": normalized_trains
         }
 
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
-        print("DEBUG ERROR:", e)  # 🔹 print actual error
-        raise HTTPException(status_code=500, detail=f"Error fetching train data: {str(e)}")
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"DEBUG ERROR in get_live_trains: {e}")
+        print(f"Traceback: {error_trace}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching train data: {str(e)}"
+        )
 
 
 @router.get("/train-status")

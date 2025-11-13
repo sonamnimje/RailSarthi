@@ -3,7 +3,8 @@ import clsx from 'clsx'
 import { blockSections, signals, stations, trains, type Train, type TrainStop } from '../lib/railwayMasterChartData'
 
 export interface RailwayMasterChartProps {
-  height?: number
+  /** numeric pixel height or CSS height string (e.g. '80vh' or '100%') */
+  height?: number | string
   className?: string
 }
 
@@ -40,11 +41,12 @@ type TrainGraphics = {
 
 const MINUTE_SCALE = 3.25
 const stationSpacing = 110
+// Reduced internal SVG margins so the chart uses available space better
 const margins = {
-  top: 160,
-  right: 180,
-  bottom: 140,
-  left: 260
+  top: 60,
+  right: 80,
+  bottom: 80,
+  left: 120
 }
 
 function parseMinutes(value: string): number {
@@ -235,29 +237,34 @@ export default function RailwayMasterChart({ height = 720, className }: RailwayM
 
   const timeTicks = useMemo(() => prepareTimeTicks(timeBounds.min, timeBounds.max), [timeBounds.max, timeBounds.min])
 
-  const computedHeight = Math.max(height, chartHeight)
+  // Determine wrapper CSS height. If a numeric height was provided, use that (but ensure it is at least the intrinsic chartHeight).
+  const wrapperHeightStyle = typeof height === 'number' ? `${Math.max(height, chartHeight)}px` : height ? String(height) : `${chartHeight}px`
 
   return (
-    <div className={clsx('w-full rounded-2xl border border-slate-200 bg-blue-50 shadow-sm', className)}>
-      <div className="flex flex-col gap-3 px-6 pt-6 md:flex-row md:items-center md:justify-between">
+    <div
+      className={clsx('w-full rounded-2xl border border-slate-200 bg-blue-50 shadow-sm', className)}
+      style={{ height: wrapperHeightStyle }}
+    >
+      <div className="flex flex-col gap-3 px-3 pt-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-slate-800">मास्टर चार्ट (Master Chart)</h2>
           <p className="text-sm text-slate-500">Train control diagram — Bhusaval Jn (BSL) ⇄ Khandwa Jn (KNW)</p>
         </div>
         <Legend />
       </div>
-      <div className="p-6 pt-4">
-        <div className="relative overflow-x-auto">
+      <div className="p-0 pt-0 h-full">
+        <div className="relative overflow-x-auto h-full">
           <svg
-            viewBox={`0 0 ${chartWidth} ${computedHeight}`}
-            className="min-h-[400px] w-full"
+            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+            style={{ width: '100%', height: '100%' }}
+            preserveAspectRatio="xMinYMin meet"
             role="img"
             aria-label="Railway master chart showing train movements between Bhusaval and Khandwa"
           >
-            <rect x={0} y={0} width={chartWidth} height={computedHeight} fill="#f8fafc" rx={18} />
+            <rect x={0} y={0} width={chartWidth} height={chartHeight} fill="#f8fafc" rx={18} />
             <Grid
               chartWidth={chartWidth}
-              chartHeight={computedHeight}
+              chartHeight={chartHeight}
               timeTicks={timeTicks}
               timeToX={timeToX}
               stationPositions={stationPositions}
@@ -271,7 +278,7 @@ export default function RailwayMasterChart({ height = 720, className }: RailwayM
           </svg>
         </div>
       </div>
-      <div className="px-6 pb-6 text-xs text-slate-500">
+      <div className="px-3 pb-3 text-xs text-slate-500">
         Horizontal ticks depict train halts. Arrows indicate direction of movement. Crossing symbols show planned meet-pass
         operations under station control.
       </div>
