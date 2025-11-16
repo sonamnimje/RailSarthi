@@ -1,8 +1,203 @@
+import asyncio
+import json
+import os
+import uuid
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Any
+
+import networkx as nx
+import pandas as pd
+
+
+@dataclass
+class TrainState:
+    train_id: str
+    schedule: Dict[str, Any]
+    path: List[str]
+    section_index: int = 0
+    pos: float = 0.0
+    speed: float = 10.0
+    delay: float = 0.0
+    priority: int = 1
+    status: str = "running"
+
+
+class SimulationEngine:
+    """Lightweight digital twin simulation engine.
+
+    - Loads CSVs from `app/data/<division>/`
+    - Builds a NetworkX graph
+    - Maintains train states
+    - Runs an asyncio loop and broadcasts updates to subscribers
+    """
+
+    def __init__(self, division: str = "mumbai") -> None:
+        self.division = division
+        self.data_dir = os.path.join(os.path.dirname(__file__), "..", "data", division)
+        self.graph: nx.Graph = nx.DiGraph()
+        self.trains: Dict[str, TrainState] = {}
+        self.tick: int = 0
+        self.running: bool = False
+        self._task: Optional[asyncio.Task] = None
+        self._subscribers: Dict[str, Any] = {}
+        self._lock = asyncio.Lock()
+        self.kpis: Dict[str, Any] = {"throughput": 0, "avg_delay": 0.0, "punctuality": 1.0}
+
+        # Try to load datasets; if absent, engine will still operate with empty graph
+        try:
+            self._load_csvs()
+        except Exception:
+            pass
+
+    def _csv_path(self, name: str) -> str:
+        return os.path.join(self.data_dir, name)
+
+    def _load_csvs(self) -> None:
+        # Expected files: stations.csv, sections.csv, trains.csv
+        stations_fp = self._csv_path("stations.csv")
+        sections_fp = self._csv_path("sections.csv")
+        trains_fp = self._csv_path("trains.csv")
+
+        if os.path.exists(stations_fp):
+            stations = pd.read_csv(stations_fp)
+            for _, r in stations.iterrows():
+                self.graph.add_node(str(r.get("station_code", r.get("station_name", ""))).strip(), **r.to_dict())
+
+        if os.path.exists(sections_fp):
+            sections = pd.read_csv(sections_fp)
+            for _, r in sections.iterrows():
+                a = str(r.get("from", r.get("from_station", ""))).strip()
+                b = str(r.get("to", r.get("to_station", ""))).strip()
+                length = float(r.get("length_km", r.get("length", 1.0)))
+                self.graph.add_edge(a, b, length_km=length)
+
+        if os.path.exists(trains_fp):
+            trains = pd.read_csv(trains_fp)
+            for _, r in trains.iterrows():
+                tid = str(r.get("train_no", r.get("train_id", uuid.uuid4().hex)))
+                path = []
+                if "path" in r and pd.notna(r["path"]):
+                    path = [p.strip() for p in r["path"].split("->") if p.strip()]
+                else:
+                    # fallback to first two stations
+                    if len(self.graph.nodes) >= 2:
+                        path = list(self.graph.nodes)[:2]
+                ts = TrainState(train_id=tid, schedule={}, path=path)
+                self.trains[tid] = ts
+
+    async def start(self) -> None:
+        if self.running:
+            return
+        self.running = True
+        loop = asyncio.get_running_loop()
+        self._task = loop.create_task(self._run_loop())
+
+    async def stop(self) -> None:
+        self.running = False
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+            self._task = None
+
+    async def reset(self) -> None:
+        await self.stop()
+        self.tick = 0
+        # reload data to reset trains
+        self.trains = {}
+        try:
+            self._load_csvs()
+        except Exception:
+            pass
+
+    async def _run_loop(self) -> None:
+        try:
+            while self.running:
+                async with self._lock:
+                    self.tick += 1
+                    self._advance_trains()
+                    self._compute_kpis()
+                    payload = {
+                        "tick": self.tick,
+                        "trains": [self._train_to_dict(t) for t in self.trains.values()],
+                        "kpis": self.kpis,
+                    }
+                await self._broadcast(payload)
+                await asyncio.sleep(1.0)  # 1 second per tick
+        except asyncio.CancelledError:
+            return
+
+    def _train_to_dict(self, t: TrainState) -> Dict[str, Any]:
+        return {
+            "train_id": t.train_id,
+            "section_index": t.section_index,
+            "pos": t.pos,
+            "speed": t.speed,
+            "delay": t.delay,
+            "priority": t.priority,
+            "status": t.status,
+            "path": t.path,
+        }
+
+    def _advance_trains(self) -> None:
+        # simple deterministic movement along path
+        for t in self.trains.values():
+            if t.status != "running":
+                continue
+            # speed is km/h -> convert to km per tick (1s)
+            km_per_tick = (t.speed / 3600.0)
+            t.pos += km_per_tick
+            # if section length known, advance index
+            if t.section_index < len(t.path) - 1:
+                a = t.path[t.section_index]
+                b = t.path[t.section_index + 1]
+                length = self.graph.get_edge_data(a, b, {}).get("length_km", 1.0) if self.graph.has_edge(a, b) else 1.0
+                if t.pos >= length:
+                    t.pos = 0.0
+                    t.section_index += 1
+                    # simple throughput increment on leaving a section
+                    self.kpis["throughput"] = self.kpis.get("throughput", 0) + 1
+            else:
+                # reached destination
+                t.status = "arrived"
+
+    def _compute_kpis(self) -> None:
+        delays = [t.delay for t in self.trains.values()]
+        self.kpis["avg_delay"] = float(sum(delays) / len(delays)) if delays else 0.0
+        arrived = sum(1 for t in self.trains.values() if t.status == "arrived")
+        total = len(self.trains)
+        self.kpis["punctuality"] = float((total - arrived) / total) if total else 1.0
+
+    async def _broadcast(self, payload: Dict[str, Any]) -> None:
+        # send JSON text to all subscribers; prune dead connections
+        dead = []
+        text = json.dumps(payload, default=str)
+        for sid, ws in list(self._subscribers.items()):
+            try:
+                await ws.send_text(text)
+            except Exception:
+                dead.append(sid)
+        for sid in dead:
+            self._subscribers.pop(sid, None)
+
+    def add_subscriber(self, ws) -> str:
+        sid = uuid.uuid4().hex
+        # store websocket directly; must be awaited by caller
+        self._subscribers[sid] = ws
+        return sid
+
+    def remove_subscriber(self, sid: str) -> None:
+        try:
+            self._subscribers.pop(sid, None)
+        except Exception:
+            pass
 from dataclasses import dataclass
 from typing import Dict, Any, List
 import random
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 @dataclass
@@ -14,6 +209,7 @@ class SimulatorService:
 	def __init__(self, config: SimulatorConfig | None = None) -> None:
 		self.config = config or SimulatorConfig()
 		self.simulation_counter = 0
+		self.recent_runs: List[Dict[str, Any]] = []
 
 	def run(self, scenario: Dict[str, Any]) -> Dict[str, Any]:
 		"""Run a digital twin simulation with realistic disruption modeling"""
@@ -33,12 +229,23 @@ class SimulatorService:
 		# Generate prediction timeline
 		predictions = self._generate_predictions(disruptions, impacted_trains)
 		
-		return {
+		result = {
 			"id": simulation_id,
+			"name": scenario_name,
+			"scenario": scenario,
 			"impacted_trains": impacted_trains,
 			"metrics": metrics,
 			"predictions": predictions
 		}
+		self.recent_runs.append({
+			"id": simulation_id,
+			"name": scenario_name,
+			"scenario": scenario,
+			"result": result,
+			"timestamp": datetime.now(timezone.utc).isoformat(),
+		})
+		self.recent_runs = self.recent_runs[-5:]
+		return result
 
 	def _simulate_train_impacts(self, disruptions: List[Dict[str, Any]]) -> List[str]:
 		"""Simulate which trains are impacted by disruptions"""
@@ -265,6 +472,9 @@ class SimulatorService:
 		
 		print(f"Sent {len(notifications)} notifications for simulation {simulation_id}")
 		return notifications
+
+	def get_recent_runs(self) -> List[Dict[str, Any]]:
+		return list(self.recent_runs)
 
 
 simulator_service = SimulatorService()
