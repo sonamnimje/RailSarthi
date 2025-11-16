@@ -1,0 +1,13 @@
+bridge_id,section_id,type,length_m,condition,division
+NGP_B001,NGP_S19,River,556.3,Fair,nagpur
+NGP_B002,NGP_S12,Canal,435.3,Fair,nagpur
+NGP_B003,NGP_S18,Nullah,95.4,Poor,nagpur
+NGP_B004,NGP_S18,Road,122.7,Poor,nagpur
+NGP_B005,NGP_S17,River,263.1,Good,nagpur
+NGP_B006,NGP_S1,River,113.0,Fair,nagpur
+NGP_B007,NGP_S13,Road,564.3,Fair,nagpur
+NGP_B008,NGP_S3,Nullah,243.0,Good,nagpur
+NGP_B009,NGP_S8,Canal,159.6,Poor,nagpur
+NGP_B010,NGP_S5,Road,270.4,Poor,nagpur
+NGP_B011,NGP_S14,River,442.1,Good,nagpur
+NGP_B012,NGP_S3,Road,271.3,Good,nagpur

@@ -1,3 +1,67 @@
+import React from 'react'
+
+export interface SmartRecommendationsProps {
+  kpis?: any
+}
+
+const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({kpis = {}}) => {
+  const throughput = kpis?.throughput ?? 0
+  const avgDelay = kpis?.avg_delay ?? 0
+  const punctuality = kpis?.punctuality ?? 1
+
+  const recommendations = [
+    {id: 'r1', text: 'Hold low-priority freight at siding to reduce cascading delays.'},
+    {id: 'r2', text: 'Allocate Platform 2 to Train 12023 to improve punctuality.'},
+  ]
+
+  const accept = (r:any) => {
+    // For now just log; in production this should call an API to persist override
+    console.log('Accept recommendation', r)
+    alert('Accepted: ' + r.text)
+  }
+
+  const override = (r:any) => {
+    console.log('Override recommendation', r)
+    alert('Overridden: ' + r.text)
+  }
+
+  return (
+    <div>
+      <h2 className="text-lg font-semibold mb-2">AI Recommendations</h2>
+      <div className="space-y-2">
+        <div className="p-2 bg-gray-900 rounded">
+          <div className="text-sm">Throughput</div>
+          <div className="text-2xl font-bold">{throughput}</div>
+        </div>
+        <div className="p-2 bg-gray-900 rounded">
+          <div className="text-sm">Avg Delay</div>
+          <div className="text-2xl font-bold">{avgDelay.toFixed ? avgDelay.toFixed(2) : avgDelay}</div>
+        </div>
+        <div className="p-2 bg-gray-900 rounded">
+          <div className="text-sm">Punctuality</div>
+          <div className="text-2xl font-bold">{Math.round((punctuality||0)*100)}%</div>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <h3 className="font-medium">Top Suggestions</h3>
+        <ul className="mt-2 space-y-2">
+          {recommendations.map(r => (
+            <li key={r.id} className="p-2 bg-gray-900 rounded">
+              <div className="text-sm mb-1">{r.text}</div>
+              <div className="flex gap-2">
+                <button onClick={() => accept(r)} className="bg-green-600 px-2 py-1 rounded">Accept</button>
+                <button onClick={() => override(r)} className="bg-red-600 px-2 py-1 rounded">Override</button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+export default SmartRecommendations
 import React, { useState } from 'react';
 import type { Recommendation } from '../lib/api';
 

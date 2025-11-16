@@ -1,0 +1,13 @@
+bridge_id,section_id,type,length_m,condition,division
+SLP_B001,SLP_S7,Nullah,541.6,Fair,solapur
+SLP_B002,SLP_S20,River,335.9,Poor,solapur
+SLP_B003,SLP_S6,Nullah,135.8,Fair,solapur
+SLP_B004,SLP_S8,River,300.9,Fair,solapur
+SLP_B005,SLP_S4,Nullah,278.7,Poor,solapur
+SLP_B006,SLP_S5,Canal,347.4,Fair,solapur
+SLP_B007,SLP_S20,Nullah,335.8,Fair,solapur
+SLP_B008,SLP_S11,River,313.9,Fair,solapur
+SLP_B009,SLP_S2,River,286.4,Fair,solapur
+SLP_B010,SLP_S10,Canal,158.4,Fair,solapur
+SLP_B011,SLP_S20,Road,191.3,Poor,solapur
+SLP_B012,SLP_S9,River,378.8,Good,solapur

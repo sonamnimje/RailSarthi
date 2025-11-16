@@ -53,7 +53,7 @@ function Home() {
       className="min-h-screen relative overflow-hidden"
       style={{
         backgroundImage:
-          "linear-gradient(135deg, rgba(219,234,254,0.92), rgba(191,219,254,0.88)), url('/bg2.png')",
+          "linear-gradient(135deg, rgba(219,234,254,0.92), rgba(191,219,254,0.88)), url('/bg4.png')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: isMobile ? 'scroll' : 'fixed',
@@ -93,53 +93,51 @@ function Home() {
       </div>
 
       {/* Main Hero Section */}
-      <main 
-        ref={heroRef}
-        className="hero relative z-10"
-        style={{
-          transform: `translateY(calc(-40px + ${scrollY * 0.3}px))`,
-          opacity: Math.max(0, Math.min(1, 1 - (scrollY / 500)))
-        }}
-      >
-  <div className="hero-content group">
+      <div className="relative min-h-screen w-full flex items-center justify-center px-6 sm:px-10">
+        {/* Centered Hero Content */}
+        <main
+          ref={heroRef}
+          className="relative z-10 w-full max-w-4xl mx-auto text-center"
+          style={{
+            transform: `translateY(calc(-40px + ${scrollY * 0.3}px))`,
+            opacity: Math.max(0, Math.min(1, 1 - scrollY / 500))
+          }}
+        >
+          {/* HERO TITLE */}
           <h1 
-            className="text-4xl font-bold text-blue-900 mb-3 transition-all duration-500 hover:scale-105 cursor-default sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl"
+            className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.15] tracking-tight text-white mb-8 drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] transition-all duration-300 hover:drop-shadow-[0_8px_24px_rgba(0,0,0,0.7)] cursor-default"
             style={{
-              textShadow: '2px 2px 4px rgba(255,255,255,0.5)',
-              color: '#191970'
+              letterSpacing: '0.05em',
+              transform: 'scaleX(1.1)',
+              transformOrigin: 'center center'
             }}
           >
-            RailAnukriti
+            <span className="block whitespace-nowrap transition-all duration-300 hover:scale-105 hover:text-blue-100 hover:translate-y-[-2px]">AI-Powered Rail Operations</span>
+            <span className="block whitespace-nowrap transition-all duration-300 hover:scale-105 hover:text-teal-100 hover:translate-y-[-2px]">for a Smarter, Safer India</span>
           </h1>
-          <p className="text-lg text-white font-bold mb-4 animate-slide-in-left sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl text-shadow transition-transform duration-300 ease-out group-hover:translate-x-1 group-hover:scale-105 group-hover:text-yellow-200 group-hover:drop-shadow-xl">
-            Empowering Indian Railways<br />with Intelligence & Innovation.
-          </p>
-          <button
-            className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-green-500 px-6 py-2.5 text-base font-semibold text-white shadow-lg transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500 hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-xl active:scale-95 sm:w-auto sm:px-8 sm:py-3 sm:text-lg md:text-xl lg:text-2xl"
-            onClick={() => setShowModal(true)}
-            aria-haspopup="dialog"
-            aria-expanded={showModal}
-          >
-            GET STARTED
-          </button>
-        </div>
 
-        {/* Right Side - Train Image */}
-        <div className="flex-1 flex justify-center items-center w-full">
-          <div 
-            className="group relative w-full max-w-xl transition-transform duration-500 sm:max-w-2xl lg:hover:scale-105"
-            style={{
-              transform: `translateY(${-scrollY * 0.2}px) rotateY(${Math.sin(scrollY * 0.01) * 2}deg)`
-            }}
-          >
-            
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-blue-500/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+          {/* Centered Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <button
+              className="inline-flex items-center justify-center gap-3 rounded-full bg-green-500 px-8 py-3.5 text-lg font-semibold text-white shadow-xl transition-all duration-300 hover:-translate-y-2 hover:bg-green-600 hover:shadow-2xl hover:shadow-green-500/50 hover:scale-105 active:scale-95"
+              onClick={() => setShowModal(true)}
+            >
+              Get Started
+            </button>
+
+            <button
+              className="inline-flex items-center justify-center gap-3 rounded-full bg-orange-500 px-8 py-3.5 text-lg font-semibold text-white shadow-xl transition-all duration-300 hover:-translate-y-2 hover:bg-orange-600 hover:shadow-2xl hover:shadow-orange-500/50 hover:scale-105 active:scale-95"
+              onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
+            >
+              Learn More
+            </button>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
 
       {/* Features Section */}
       <section 
+        id="features"
         className="relative z-10 px-4 py-12 bg-gradient-to-br from-blue-50 via-blue-50 to-teal-50 backdrop-blur-sm sm:px-6 sm:py-16 md:py-20"
         style={{
           transform: `translateY(${-scrollY * 0.1}px)`,
@@ -244,7 +242,7 @@ function Home() {
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-3xl sm:text-4xl transition-transform duration-200 hover:rotate-90 hover:scale-110"
+              className="absolute top-2 right-2 text-gray-400 hover:text-red-600 text-3xl sm:text-4xl transition-all duration-300 hover:rotate-90 hover:scale-125 hover:bg-red-50 rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center"
               onClick={() => setShowModal(false)}
               aria-label="Close"
             >
@@ -254,13 +252,13 @@ function Home() {
             <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-4 sm:mb-6 text-center">Sign in or create an account to access all features.</p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full">
               <button
-                className="flex-1 px-4 py-2.5 sm:py-2 bg-blue-600 text-white rounded-lg text-base sm:text-lg md:text-xl font-semibold hover:bg-blue-700 transition-all duration-300 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+                className="flex-1 px-6 py-3 sm:py-3 bg-blue-600 text-white rounded-lg text-lg sm:text-lg md:text-xl font-semibold hover:bg-blue-700 transition-all duration-300 hover:scale-110 hover:-translate-y-1 active:scale-95 shadow-md hover:shadow-xl hover:shadow-blue-500/50"
                 onClick={() => handleNavigate('/login')}
               >
                 Login
               </button>
               <button
-                className="flex-1 px-4 py-2.5 sm:py-2 bg-gray-200 text-blue-700 rounded-lg text-base sm:text-lg md:text-xl font-semibold hover:bg-blue-100 transition-all duration-300 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+                className="flex-1 px-6 py-3 sm:py-3 bg-gray-200 text-blue-700 rounded-lg text-lg sm:text-lg md:text-xl font-semibold hover:bg-blue-100 hover:text-blue-800 transition-all duration-300 hover:scale-110 hover:-translate-y-1 active:scale-95 shadow-md hover:shadow-xl hover:shadow-blue-300/50"
                 onClick={() => handleNavigate('/signup')}
               >
                 Sign Up

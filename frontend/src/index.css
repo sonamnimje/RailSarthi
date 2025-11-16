@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 html, body, #root { height: 100%; }
-body { @apply bg-blue-50 text-white text-base sm:text-lg md:text-xl lg:text-2xl; }
+/* Use a dark base text color so text is visible on the light background */
+body { @apply bg-blue-50 text-gray-800 text-base sm:text-lg md:text-xl lg:text-2xl; }
 
 @layer utilities {
 	.auth-bg {
@@ -270,6 +271,27 @@ body { @apply bg-blue-50 text-white text-base sm:text-lg md:text-xl lg:text-2xl;
 
 .text-shadow {
 	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Conflict glow animation for railway sections */
+@keyframes conflictPulse {
+	0%, 100% {
+		opacity: 0.2;
+		filter: blur(2px);
+	}
+	50% {
+		opacity: 0.4;
+		filter: blur(4px);
+	}
+}
+
+.conflict-glow {
+	animation: conflictPulse 1.5s ease-in-out infinite;
+	pointer-events: none;
+}
+
+.conflict-section {
+	filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.8));
 }
 
 

@@ -1,0 +1,12 @@
+gate_id,section_id,gate_type,manned,division
+MUM_G001,MUM_S16,Foot Crossing,no,mumbai
+MUM_G002,MUM_S13,Overbridge,yes,mumbai
+MUM_G003,MUM_S15,Overbridge,yes,mumbai
+MUM_G004,MUM_S17,Level Crossing,no,mumbai
+MUM_G005,MUM_S8,Foot Crossing,no,mumbai
+MUM_G006,MUM_S3,Foot Crossing,no,mumbai
+MUM_G007,MUM_S4,Foot Crossing,yes,mumbai
+MUM_G008,MUM_S15,Foot Crossing,no,mumbai
+MUM_G009,MUM_S19,Level Crossing,yes,mumbai
+MUM_G010,MUM_S7,Overbridge,no,mumbai
+MUM_G011,MUM_S9,Overbridge,yes,mumbai

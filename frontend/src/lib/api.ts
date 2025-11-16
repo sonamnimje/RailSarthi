@@ -14,6 +14,99 @@ export type Recommendation = {
 	priority_score?: number
 }
 
+export type KPIResponse = {
+	throughput_per_hour: number
+	avg_delay_minutes: number
+	congestion_index: number
+	on_time_percentage: number
+	max_delay_today?: {
+		train_id?: string | null
+		delay_minutes?: number | null
+		station_id?: string | null
+		recorded_at?: string | null
+	} | null
+	delay_propagation_index?: number
+	recommended_refresh_seconds?: number
+	updated_at?: string
+}
+
+export type DelayTrendsResponse = {
+	labels: string[]
+	series: number[]
+	hourly?: { labels: string[]; series: number[] }
+	last7days?: { labels: string[]; series: number[] }
+	by_type?: Array<{ type: string; direction: string; avg_delay: number; section_id?: string | null; sample_size: number }>
+	division_comparison?: Array<{ section_id?: string | null; zone: string; division: string; avg_delay: number; samples: number }>
+}
+
+export type ThroughputAnalyticsResponse = {
+	data: Array<{ type: string; throughput: number }>
+	actual_vs_ai?: Array<{ bucket: string; label: string; actual: number; optimized: number }>
+	real_vs_simulated?: Array<{ label: string; value: number }>
+	division_throughput?: Array<{ section_id?: string | null; zone: string; division: string; value: number }>
+	hourly_heatmap?: { xLabels: string[]; yLabels: string[]; data: number[][] }
+}
+
+export type BottleneckResponse = {
+	bottlenecks: Array<{
+		section_id?: string | null
+		zone: string
+		division: string
+		stations: string[]
+		no_of_delays: number
+		total_events: number
+		avg_delay: number
+		max_delay: number
+		max_congestion: number
+		most_delayed_train?: string | null
+		time_slot?: string | null
+		bottleneck_score: number
+	}>
+	heatmap?: { xLabels: string[]; yLabels: string[]; data: number[][] }
+}
+
+export type ZoneSummaryResponse = {
+	zones: Array<{ zone: string; avg_delay: number; running_trains: number; congestion_level: number }>
+	divisions: Array<{ zone: string; division: string; running_trains: number; avg_delay: number; congestion_level: number }>
+	updated_at?: string
+}
+
+export type AIRecommendationsResponse = {
+	recommendations: Array<{ time: string; train: string; section_id?: string | null; station_id?: string | null; action: string; reason: string; delay: number; delay_saved: number }>
+	summary: { total_recommendations: number; total_delay_saved: number; generated_at: string }
+}
+
+export type CorrelationResponse = {
+	points: Array<{ section_id?: string | null; zone: string; division: string; throughput: number; avg_delay: number }>
+	trendline: { slope: number; intercept: number; r_squared: number }
+	updated_at?: string
+}
+
+export type DisruptionImpactResponse = {
+	scenarios: Array<{
+		id: string
+		name?: string
+		generated_at?: string
+		table: Array<{ disruption: string; impact: string; delay_caused: number; trains_affected: number }>
+		before_after: Array<{ metric: string; before: number; after: number }>
+	}>
+	count: number
+}
+
+export type AlertsResponse = {
+	alerts: Array<{ id: string; message: string; details?: string; section_id?: string | null; zone?: string; division?: string; severity: string; timestamp: string }>
+}
+
+export type TrainReportResponse = {
+	train_id: string
+	timeline: Array<{ station_id?: string | null; section_id?: string | null; event_type?: string | null; planned_time?: string | null; actual_time?: string | null; delay_minutes?: number; status?: string | null }>
+	delay_profile: Array<{ station_id?: string | null; delay: number }>
+	speed_profile: Array<{ section_id?: string | null; location_km: number; speed_kmph: number; timestamp?: string | null }>
+	conflicts: Array<{ section_id?: string | null; station_id?: string | null; type: string; description: string }>
+	ai_actions: Array<{ station_id?: string | null; action: string; reason: string; applied: boolean }>
+	generated_at?: string
+}
+
 // Resolve API base URL with safe fallbacks:
 // 1) Use VITE_API_URL when provided
 // 2) Use localhost:8000 during local dev
@@ -81,36 +174,86 @@ export async function fetchPositions() {
 	return (await res.json()) as Array<{ train_id: string; section_id: string; planned_block_id?: string; actual_block_id?: string; location_km: number; speed_kmph: number; timestamp: number }>
 }
 
-export async function fetchKpis() {
-	const res = await fetch(`${apiBaseUrl}/api/reports/kpis`, {
+export async function fetchKpis(hours = 24): Promise<KPIResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/reports/kpi?hours=${hours}`, {
 		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
 	})
 	if (!res.ok) throw new Error('Failed to fetch KPIs')
-	return (await res.json()) as { throughput_per_hour: number; avg_delay_minutes: number; congestion_index: number; on_time_percentage: number }
+	return (await res.json()) as KPIResponse
 }
 
-export async function fetchDelayTrends(hours = 24) {
+export async function fetchDelayTrends(hours = 24): Promise<DelayTrendsResponse> {
 	const res = await fetch(`${apiBaseUrl}/api/reports/delay_trends?hours=${hours}`, {
 		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
 	})
+	if (res.status === 401) throw new Error('Unauthorized')
 	if (!res.ok) throw new Error('Failed to fetch delay trends')
-	return (await res.json()) as { labels: string[]; series: number[] }
+	return (await res.json()) as DelayTrendsResponse
 }
 
-export async function fetchThroughput(hours = 24) {
+export async function fetchThroughput(hours = 24): Promise<ThroughputAnalyticsResponse> {
 	const res = await fetch(`${apiBaseUrl}/api/reports/throughput?hours=${hours}`, {
 		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
 	})
 	if (!res.ok) throw new Error('Failed to fetch throughput')
-	return (await res.json()) as { data: Array<{ label: string; value: number }> }
+	return (await res.json()) as ThroughputAnalyticsResponse
 }
 
-export async function fetchHotspots(hours = 24, top_sections = 4, buckets = 5) {
-	const res = await fetch(`${apiBaseUrl}/api/reports/hotspots?hours=${hours}&top_sections=${top_sections}&buckets=${buckets}`, {
+export async function fetchHotspots(hours = 24, top_sections = 4, buckets = 5): Promise<BottleneckResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/reports/bottlenecks?hours=${hours}&top_n=${top_sections}&buckets=${buckets}`, {
 		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
 	})
-	if (!res.ok) throw new Error('Failed to fetch hotspots')
-	return (await res.json()) as { xLabels: string[]; yLabels: string[]; data: number[][] }
+	if (!res.ok) throw new Error('Failed to fetch bottlenecks')
+	return (await res.json()) as BottleneckResponse
+}
+
+export async function fetchZoneSummary(hours = 24): Promise<ZoneSummaryResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/reports/zone-summary?hours=${hours}`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	})
+	if (res.status === 401) throw new Error('Unauthorized')
+	if (!res.ok) throw new Error('Failed to fetch zone summary')
+	return (await res.json()) as ZoneSummaryResponse
+}
+
+export async function fetchAIRecommendations(limit = 8): Promise<AIRecommendationsResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/reports/ai-recommendations?limit=${limit}`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	})
+	if (!res.ok) throw new Error('Failed to fetch AI recommendations')
+	return (await res.json()) as AIRecommendationsResponse
+}
+
+export async function fetchThroughputDelayCorrelation(hours = 24): Promise<CorrelationResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/reports/throughput-delay-correlation?hours=${hours}`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	})
+	if (!res.ok) throw new Error('Failed to fetch correlation data')
+	return (await res.json()) as CorrelationResponse
+}
+
+export async function fetchDisruptionImpact(): Promise<DisruptionImpactResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/reports/disruption-impact`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	})
+	if (!res.ok) throw new Error('Failed to fetch disruption impact')
+	return (await res.json()) as DisruptionImpactResponse
+}
+
+export async function fetchAlerts(): Promise<AlertsResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/reports/alerts`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	})
+	if (!res.ok) throw new Error('Failed to fetch alerts')
+	return (await res.json()) as AlertsResponse
+}
+
+export async function fetchTrainReport(trainId: string, hours = 24): Promise<TrainReportResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/reports/train-report/${encodeURIComponent(trainId)}?hours=${hours}`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	})
+	if (!res.ok) throw new Error('Failed to fetch train report')
+	return (await res.json()) as TrainReportResponse
 }
 
 export type LiveTrain = {
@@ -179,7 +322,8 @@ export async function fetchLiveTrains(params: {
 	}
 }
 
-export type MasterChartItem = {
+// Master chart types removed
+/*export type MasterChartItem = {
 	zone: string
 	division: string
 	chart_url: string
@@ -187,12 +331,9 @@ export type MasterChartItem = {
 }
 
 export async function fetchMasterCharts(): Promise<{ charts: MasterChartItem[] }> {
-	const res = await fetch(`${apiBaseUrl}/api/reports/master-charts`, {
-		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-	})
-	if (!res.ok) throw new Error('Failed to fetch master charts')
-	return (await res.json()) as { charts: MasterChartItem[] }
+	throw new Error('Master chart functionality has been removed')
 }
+*/
 
 export async function login(
 	username: string, 
@@ -520,6 +661,7 @@ export async function fetchTrainLogs(params: {
 	const res = await fetch(`${apiBaseUrl}/api/train-logs/logs?${searchParams}`, {
 		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
 	})
+	if (res.status === 401) throw new Error('Unauthorized')
 	if (!res.ok) throw new Error('Failed to fetch train logs')
 	return (await res.json()) as { logs: TrainLog[]; total: number }
 }
@@ -567,5 +709,391 @@ export async function fetchLogStats(hours = 24) {
 	})
 	if (!res.ok) throw new Error('Failed to fetch log stats')
 	return (await res.json()) as LogStats
+}
+
+// AI Recommendation API functions
+export type AIRecommendation = {
+	conflict_id: string
+	conflict?: {
+		type: string
+		section: string
+		trains: string[]
+		severity?: string
+		distance_km?: number
+	}
+	solution: {
+		precedence: string[]
+		holds: Record<string, number>
+		crossing?: string
+		speed_adjust: Record<string, number>
+	}
+	confidence: number
+	explanation: string
+	feature_importances?: Record<string, number>
+	timestamp: string
+	expected_delta_kpis?: {
+		delay_reduction_minutes: number
+		throughput_impact: number
+	}
+}
+
+export async function getRecommendations(division: string): Promise<AIRecommendation[]> {
+	const res = await fetch(`${apiBaseUrl}/api/ai/recommendation?division=${encodeURIComponent(division)}`, {
+		method: 'POST',
+		headers: { 
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${localStorage.getItem('token') || ''}` 
+		},
+		body: JSON.stringify({})
+	})
+	if (!res.ok) throw new Error('Failed to fetch recommendations')
+	return (await res.json()) as AIRecommendation[]
+}
+
+export async function getLatestRecommendations(division: string): Promise<AIRecommendation[]> {
+	const res = await fetch(`${apiBaseUrl}/api/ai/recommendation/latest?division=${encodeURIComponent(division)}`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	})
+	if (!res.ok) throw new Error('Failed to fetch latest recommendations')
+	return (await res.json()) as AIRecommendation[]
+}
+
+export async function acceptRecommendation(division: string, recommendationId: string, userId?: string): Promise<{ status: string; message: string }> {
+	const res = await fetch(`${apiBaseUrl}/api/ai/accept`, {
+		method: 'POST',
+		headers: { 
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${localStorage.getItem('token') || ''}` 
+		},
+		body: JSON.stringify({
+			division,
+			recommendation_id: recommendationId,
+			user_id: userId
+		})
+	})
+	if (!res.ok) throw new Error('Failed to accept recommendation')
+	return (await res.json()) as { status: string; message: string }
+}
+
+export async function submitOverride(
+	division: string,
+	recommendationId: string,
+	humanSolution: Record<string, any>,
+	reason?: string,
+	userId?: string
+): Promise<{ status: string; override_id: string }> {
+	const res = await fetch(`${apiBaseUrl}/api/ai/override`, {
+		method: 'POST',
+		headers: { 
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${localStorage.getItem('token') || ''}` 
+		},
+		body: JSON.stringify({
+			division,
+			recommendation_id: recommendationId,
+			human_solution: humanSolution,
+			reason,
+			user_id: userId
+		})
+	})
+	if (!res.ok) throw new Error('Failed to submit override')
+	return (await res.json()) as { status: string; override_id: string }
+}
+
+// Digital Twin API functions - REMOVED
+/*
+export type DigitalTwinDivision = {
+	divisions: string[];
+	count: number;
+};
+
+export type DigitalTwinStaticData = {
+	division: string;
+	stations: Array<{
+		code: string;
+		name: string;
+		lat: number;
+		lon: number;
+		is_junction?: boolean;
+		platforms?: number;
+	}>;
+	sections: Array<{
+		section_id: string;
+		from_station: string;
+		to_station: string;
+		distance_km: number;
+		tracks: number;
+		max_speed_kmph: number;
+	}>;
+	bridges: Array<{
+		bridgeId: string;
+		sectionId: string;
+		type: string;
+		length_m: number;
+		condition: string;
+	}>;
+	curves: Array<{
+		curveId: string;
+		sectionId: string;
+		radius_m: number;
+		gradient_per_mille: number;
+	}>;
+	lc_gates: Array<{
+		gateId: string;
+		sectionId: string;
+		type: string;
+		traffic_density: string;
+	}>;
+};
+
+export type DigitalTwinLiveData = {
+	timestamp: string;
+	trains: Array<{
+		trainNo: string;
+		lat: number;
+		lon: number;
+		speed: number;
+		sectionId: string;
+		status: 'RUNNING' | 'STOPPED' | 'DELAYED';
+	}>;
+	sections: Array<{
+		sectionId: string;
+		congestion: number;
+	}>;
+	alerts: Array<{
+		type: string;
+		section?: string;
+		severity: string;
+		message: string;
+	}>;
+};
+
+export type DigitalTwinOverlayData = {
+	weather: {
+		temperature: number;
+		condition: string;
+		humidity: number;
+		wind_speed: number;
+	};
+	congestion: Array<{
+		sectionId: string;
+		congestion: number;
+	}>;
+	alerts: Array<{
+		type: string;
+		section?: string;
+		severity: string;
+		message: string;
+	}>;
+};
+
+export async function fetchDigitalTwinDivisions(): Promise<DigitalTwinDivision> {
+	const res = await fetch(`${apiBaseUrl}/api/digital-twin/divisions`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	});
+	if (!res.ok) throw new Error('Failed to fetch divisions');
+	return (await res.json()) as DigitalTwinDivision;
+}
+
+export async function fetchDigitalTwinStatic(division: string): Promise<DigitalTwinStaticData> {
+	const res = await fetch(`${apiBaseUrl}/api/digital-twin/${encodeURIComponent(division)}/static`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	});
+	if (!res.ok) throw new Error('Failed to fetch static data');
+	return (await res.json()) as DigitalTwinStaticData;
+}
+
+export async function fetchDigitalTwinLive(division: string): Promise<DigitalTwinLiveData> {
+	const res = await fetch(`${apiBaseUrl}/api/digital-twin/${encodeURIComponent(division)}/live`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	});
+	if (!res.ok) throw new Error('Failed to fetch live data');
+	return (await res.json()) as DigitalTwinLiveData;
+}
+
+export async function fetchDigitalTwinOverlays(division: string): Promise<DigitalTwinOverlayData> {
+	const res = await fetch(`${apiBaseUrl}/api/digital-twin/${encodeURIComponent(division)}/overlays`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	});
+	if (!res.ok) throw new Error('Failed to fetch overlay data');
+	return (await res.json()) as DigitalTwinOverlayData;
+}
+
+// Simulation Master Chart API
+export type MasterChartStation = {
+	code: string;
+	name: string;
+	distance: number;
+	order: number;
+};
+
+export type MasterChartTrain = {
+	train_no: string;
+	train_name: string;
+	train_type: string;
+	priority: number;
+	points: Array<{
+		time: string;
+		station: string;
+		distance: number;
+	}>;
+};
+
+export type MasterChartData = {
+	division: string;
+	stations: MasterChartStation[];
+	trains: MasterChartTrain[];
+	generated_at?: string;
+};
+
+export async function fetchMasterChart(
+	division: string,
+	trainType?: string,
+	priorityMin?: number
+): Promise<MasterChartData> {
+	const params = new URLSearchParams({ division });
+	if (trainType) params.append('train_type', trainType);
+	if (priorityMin !== undefined) params.append('priority_min', priorityMin.toString());
+	const res = await fetch(`${apiBaseUrl}/api/master-chart?${params}`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	});
+	if (!res.ok) throw new Error('Failed to fetch master chart');
+	return (await res.json()) as MasterChartData;
+}
+*/
+
+// Simulation Run API
+export type DelayInput = {
+	train_id: string;
+	delay_minutes: number;
+};
+
+export type SimulationRunRequest = {
+	division: string;
+	delays: DelayInput[];
+	weather_enabled: boolean;
+	auto_resolve_conflicts: boolean;
+};
+
+export type TrainTimeline = {
+	station: string;
+	scheduled_arrival: string;
+	actual_arrival: string;
+	scheduled_departure: string;
+	actual_departure: string;
+	delay_minutes: number;
+	distance: number;
+};
+
+export type SimulationRunResult = {
+	division: string;
+	trains: Array<{
+		train_id: string;
+		train_name: string;
+		train_type: string;
+		priority: number;
+		timeline: TrainTimeline[];
+	}>;
+	stations: string[];
+	station_distances: Record<string, number>;
+	conflicts: Array<{
+		type: string;
+		section_id: string;
+		section_name: string;
+		train1: string;
+		train2: string;
+		overlap_minutes: number;
+		severity: string;
+		start_time: string;
+		end_time: string;
+		recommendations?: string[];
+		resolution?: string;
+	}>;
+	congested_sections: Array<{
+		section_id: string;
+		section_name: string;
+		severity: string;
+	}>;
+	recommendations: Array<{
+		type: string;
+		section: string;
+		trains: string[];
+		reason: string;
+	}>;
+};
+
+export async function runSimulationWithDelays(
+	request: SimulationRunRequest
+): Promise<SimulationRunResult> {
+	const res = await fetch(`${apiBaseUrl}/api/simulation/run`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+		},
+		body: JSON.stringify(request),
+	});
+	if (!res.ok) throw new Error('Failed to run simulation');
+	return (await res.json()) as SimulationRunResult;
+}
+
+// Capacity Utilization API
+export type CapacityData = {
+	time_window: string;
+	sections: Array<{
+		section_id: string;
+		section_name: string;
+		from_station: string;
+		to_station: string;
+		distance_km: number;
+		tracks: number;
+		max_speed_kmph: number;
+		train_count: number;
+		utilization_percent: number;
+		total_time_occupied_minutes: number;
+	}>;
+	average_utilization: number;
+};
+
+export async function fetchCapacityUtilization(
+	division: string,
+	timeWindow: 'hour' | 'day' | 'week' = 'hour'
+): Promise<CapacityData> {
+	const res = await fetch(
+		`${apiBaseUrl}/api/simulation/capacity?division=${division}&time_window=${timeWindow}`,
+		{
+			headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+		}
+	);
+	if (!res.ok) throw new Error('Failed to fetch capacity data');
+	return (await res.json()) as CapacityData;
+}
+
+// Conflicts API
+export type ConflictsData = {
+	division: string;
+	conflicts: Array<{
+		type: string;
+		section_id: string;
+		section_name: string;
+		train1: string;
+		train2: string;
+		overlap_minutes: number;
+		severity: string;
+		start_time: string;
+		end_time: string;
+		recommendations: string[];
+	}>;
+	total_conflicts: number;
+	high_severity: number;
+	medium_severity: number;
+};
+
+export async function fetchConflicts(division: string): Promise<ConflictsData> {
+	const res = await fetch(`${apiBaseUrl}/api/simulation/conflicts?division=${division}`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	});
+	if (!res.ok) throw new Error('Failed to fetch conflicts');
+	return (await res.json()) as ConflictsData;
 }
 

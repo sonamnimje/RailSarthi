@@ -112,10 +112,15 @@ cd RailAnukriti
 ```bash
 cd backend
 pip install -r requirements.txt
-# Option A: run via module path
+# Option A: run via top-level ASGI entry (recommended)
+uvicorn asgi:app --reload
+
+# Option B: run directly from `backend/` (works if you `cd backend` first)
+cd backend
 uvicorn app.main:app --reload
-# Option B: use helper (same effect)
-python uvicorn_app.py
+
+# Option C: use helper script (programmatic entry)
+python backend/uvicorn_app.py
 ```
 
 ### 3️⃣ Frontend Setup

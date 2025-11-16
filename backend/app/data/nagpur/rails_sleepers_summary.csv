@@ -1,0 +1,13 @@
+entry_id,section_id,rail_type,sleeper_type,condition,division
+NGP_R001,NGP_S8,UIC60,Steel,Fair,nagpur
+NGP_R002,NGP_S12,UIC60,PSC,Poor,nagpur
+NGP_R003,NGP_S8,ASD34,Steel,Poor,nagpur
+NGP_R004,NGP_S14,90R,PSC,Fair,nagpur
+NGP_R005,NGP_S12,UIC60,Steel,Poor,nagpur
+NGP_R006,NGP_S20,90R,PSC,Good,nagpur
+NGP_R007,NGP_S4,90R,Wooden,Fair,nagpur
+NGP_R008,NGP_S1,ASD34,Steel,Fair,nagpur
+NGP_R009,NGP_S2,90R,Steel,Poor,nagpur
+NGP_R010,NGP_S5,90R,Steel,Poor,nagpur
+NGP_R011,NGP_S4,90R,Steel,Poor,nagpur
+NGP_R012,NGP_S13,90R,Wooden,Good,nagpur

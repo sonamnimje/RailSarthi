@@ -1,0 +1,13 @@
+bridge_id,section_id,type,length_m,condition,division
+BWS_B001,BWS_S3,Road,595.5,Poor,bhusaval
+BWS_B002,BWS_S11,Canal,302.5,Poor,bhusaval
+BWS_B003,BWS_S17,Canal,165.4,Good,bhusaval
+BWS_B004,BWS_S12,Canal,407.0,Good,bhusaval
+BWS_B005,BWS_S8,Road,331.4,Fair,bhusaval
+BWS_B006,BWS_S12,Road,337.4,Fair,bhusaval
+BWS_B007,BWS_S17,Nullah,170.9,Fair,bhusaval
+BWS_B008,BWS_S11,River,505.1,Poor,bhusaval
+BWS_B009,BWS_S18,Nullah,494.6,Fair,bhusaval
+BWS_B010,BWS_S9,Canal,150.0,Poor,bhusaval
+BWS_B011,BWS_S10,Nullah,67.2,Good,bhusaval
+BWS_B012,BWS_S13,Nullah,447.9,Good,bhusaval

@@ -1,0 +1,17 @@
+train_no,train_name,from_station_id,to_station_id,departure,arrival,max_speed,division
+SLP201,Solapur Express 1,SLP06,SLP11,13:10,16:22,110,solapur
+SLP202,Solapur Express 2,SLP03,SLP06,07:45,15:06,120,solapur
+SLP203,Solapur Express 3,SLP10,SLP15,17:50,20:44,110,solapur
+SLP204,Solapur Express 4,SLP09,SLP15,17:25,00:21,120,solapur
+SLP205,Solapur Express 5,SLP07,SLP10,07:40,15:09,110,solapur
+SLP206,Solapur Express 6,SLP09,SLP12,08:25,15:35,110,solapur
+SLP207,Solapur Express 7,SLP11,SLP14,17:00,22:52,90,solapur
+SLP208,Solapur Express 8,SLP03,SLP07,22:05,00:45,110,solapur
+SLP209,Solapur Express 9,SLP05,SLP09,05:35,10:10,120,solapur
+SLP210,Solapur Express 10,SLP10,SLP15,15:10,21:52,110,solapur
+SLP211,Solapur Express 11,SLP08,SLP12,21:40,05:28,90,solapur
+SLP212,Solapur Express 12,SLP09,SLP13,17:50,22:01,120,solapur
+SLP213,Solapur Express 13,SLP04,SLP07,07:15,14:47,80,solapur
+SLP214,Solapur Express 14,SLP01,SLP04,14:55,20:42,110,solapur
+SLP215,Solapur Express 15,SLP09,SLP14,09:10,16:07,90,solapur
+SLP216,Solapur Express 16,SLP11,SLP15,08:00,13:17,80,solapur

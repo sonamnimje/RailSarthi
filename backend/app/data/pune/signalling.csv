@@ -1,0 +1,14 @@
+signal_id,section_id,signal_type,position_km,division
+PNE_SIG001,PNE_S7,Semaphore,12.772,pune
+PNE_SIG002,PNE_S6,Automatic Block,29.764,pune
+PNE_SIG003,PNE_S4,Automatic Block,21.994,pune
+PNE_SIG004,PNE_S11,Semaphore,40.495,pune
+PNE_SIG005,PNE_S19,Colour Light,60.133,pune
+PNE_SIG006,PNE_S9,Colour Light,38.97,pune
+PNE_SIG007,PNE_S1,Colour Light,69.289,pune
+PNE_SIG008,PNE_S17,Automatic Block,44.884,pune
+PNE_SIG009,PNE_S12,Automatic Block,56.725,pune
+PNE_SIG010,PNE_S8,Semaphore,5.038,pune
+PNE_SIG011,PNE_S20,Semaphore,61.467,pune
+PNE_SIG012,PNE_S12,Automatic Block,23.39,pune
+PNE_SIG013,PNE_S15,Semaphore,2.936,pune

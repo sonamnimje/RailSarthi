@@ -102,3 +102,27 @@ class TrainLog(Base):
 	timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP"))
 
 
+class SystemSettings(Base):
+	__tablename__ = "system_settings"
+
+	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+	category: Mapped[str] = mapped_column(String, index=True)  # division, simulation, api, disruption, access, logging, reliability, ui
+	key: Mapped[str] = mapped_column(String, index=True)
+	value: Mapped[dict] = mapped_column(JSON)  # Store flexible JSON values
+	updated_by: Mapped[str | None] = mapped_column(String, nullable=True)
+	updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP"), onupdate=text("CURRENT_TIMESTAMP"))
+
+
+class AIOverride(Base):
+	__tablename__ = "ai_overrides"
+
+	override_id: Mapped[str] = mapped_column(String, primary_key=True)
+	timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP"))
+	division: Mapped[str] = mapped_column(String, index=True)
+	conflict_id: Mapped[str] = mapped_column(String, index=True)
+	ai_solution_json: Mapped[dict] = mapped_column(JSON)
+	human_solution_json: Mapped[dict] = mapped_column(JSON)
+	user_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+	reason: Mapped[str | None] = mapped_column(String, nullable=True)
+
+

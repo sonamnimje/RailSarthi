@@ -1,0 +1,13 @@
+bridge_id,section_id,type,length_m,condition,division
+MUM_B001,MUM_S13,Road,84.0,Poor,mumbai
+MUM_B002,MUM_S20,River,346.5,Fair,mumbai
+MUM_B003,MUM_S4,River,372.7,Good,mumbai
+MUM_B004,MUM_S2,Road,502.7,Poor,mumbai
+MUM_B005,MUM_S4,Nullah,304.6,Good,mumbai
+MUM_B006,MUM_S14,Canal,542.8,Fair,mumbai
+MUM_B007,MUM_S6,Nullah,357.0,Good,mumbai
+MUM_B008,MUM_S16,Canal,541.0,Poor,mumbai
+MUM_B009,MUM_S19,Canal,104.0,Poor,mumbai
+MUM_B010,MUM_S15,River,393.9,Good,mumbai
+MUM_B011,MUM_S3,River,65.7,Poor,mumbai
+MUM_B012,MUM_S8,Canal,588.5,Good,mumbai

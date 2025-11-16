@@ -1,0 +1,13 @@
+bridge_id,section_id,type,length_m,condition,division
+PNE_B001,PNE_S6,Road,54.0,Fair,pune
+PNE_B002,PNE_S14,Nullah,476.0,Fair,pune
+PNE_B003,PNE_S19,Canal,262.0,Poor,pune
+PNE_B004,PNE_S8,Road,281.0,Fair,pune
+PNE_B005,PNE_S14,River,474.4,Poor,pune
+PNE_B006,PNE_S12,Nullah,509.9,Good,pune
+PNE_B007,PNE_S8,River,94.5,Poor,pune
+PNE_B008,PNE_S1,Canal,488.2,Fair,pune
+PNE_B009,PNE_S13,Canal,128.5,Fair,pune
+PNE_B010,PNE_S11,Road,259.1,Good,pune
+PNE_B011,PNE_S7,Nullah,532.0,Good,pune
+PNE_B012,PNE_S8,Canal,535.1,Good,pune

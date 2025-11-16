@@ -1,0 +1,14 @@
+signal_id,section_id,signal_type,position_km,division
+MUM_SIG001,MUM_S1,Automatic Block,58.574,mumbai
+MUM_SIG002,MUM_S9,Semaphore,64.507,mumbai
+MUM_SIG003,MUM_S16,Colour Light,55.505,mumbai
+MUM_SIG004,MUM_S7,Automatic Block,24.177,mumbai
+MUM_SIG005,MUM_S13,Colour Light,17.23,mumbai
+MUM_SIG006,MUM_S18,Colour Light,18.436,mumbai
+MUM_SIG007,MUM_S7,Colour Light,73.463,mumbai
+MUM_SIG008,MUM_S1,Semaphore,12.107,mumbai
+MUM_SIG009,MUM_S19,Semaphore,26.271,mumbai
+MUM_SIG010,MUM_S5,Automatic Block,49.839,mumbai
+MUM_SIG011,MUM_S17,Colour Light,2.32,mumbai
+MUM_SIG012,MUM_S14,Colour Light,73.724,mumbai
+MUM_SIG013,MUM_S19,Colour Light,63.278,mumbai

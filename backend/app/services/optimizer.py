@@ -1,3 +1,101 @@
+from typing import List, Dict, Any, Tuple
+import logging
+
+try:
+    from ortools.sat.python import cp_model
+except Exception:
+    cp_model = None  # type: ignore
+
+import random
+
+
+logger = logging.getLogger(__name__)
+
+
+class ConstraintOptimizer:
+    """Simple OR-Tools CP-SAT wrapper for precedence / platform allocation.
+
+    This implementation uses a tiny model to demonstrate constraint solving.
+    """
+
+    def __init__(self):
+        if cp_model is None:
+            logger.warning("ortools not available; ConstraintOptimizer will be limited")
+
+    def schedule_precedence(self, trains: List[Dict[str, Any]]) -> Dict[str, Any]:
+        # trains: list of dicts with 'train_id' and 'earliest' and 'latest' and 'priority'
+        if cp_model is None:
+            # fallback: sort by priority then earliest
+            ordered = sorted(trains, key=lambda t: (-int(t.get("priority", 1)), float(t.get("earliest", 0))))
+            return {"order": [t["train_id"] for t in ordered], "score": 0}
+
+        model = cp_model.CpModel()
+        n = len(trains)
+        start_vars = {}
+        horizon = 24 * 3600
+        for t in trains:
+            vid = t["train_id"]
+            start_vars[vid] = model.NewIntVar(0, horizon, f"start_{vid}")
+
+        # simple precedence pairwise constraint to avoid collisions
+        for i in range(n):
+            for j in range(i + 1, n):
+                a = trains[i]["train_id"]
+                b = trains[j]["train_id"]
+                # add disjunctive: a before b or b before a
+                model.Add(start_vars[a] + 1 <= start_vars[b]).OnlyEnforceIf(model.NewBoolVar(f"{a}_before_{b}"))
+
+        solver = cp_model.CpSolver()
+        solver.parameters.max_time_in_seconds = 2
+        res = solver.Solve(model)
+        if res == cp_model.OPTIMAL or res == cp_model.FEASIBLE:
+            order = sorted(trains, key=lambda t: solver.Value(start_vars[t["train_id"]]))
+            return {"order": [t["train_id"] for t in order], "score": solver.ObjectiveValue() if hasattr(solver, 'ObjectiveValue') else 0}
+        else:
+            return {"order": [t["train_id"] for t in trains], "score": -1}
+
+
+class QLearningAgent:
+    """Minimal Q-Learning scaffold for train precedence actions.
+
+    state: tuple (block_occupancy_hash, weather_state, priority_vector)
+    action: hold / route / cross / assign_platform
+    """
+
+    def __init__(self, actions: List[str] = None, alpha: float = 0.1, gamma: float = 0.9, eps: float = 0.2):
+        self.actions = actions or ["hold", "route", "cross", "assign_platform"]
+        self.alpha = alpha
+        self.gamma = gamma
+        self.eps = eps
+        self.q: Dict[Tuple, Dict[str, float]] = {}
+
+    def _ensure_state(self, s: Tuple) -> None:
+        if s not in self.q:
+            self.q[s] = {a: 0.0 for a in self.actions}
+
+    def select_action(self, state: Tuple) -> str:
+        self._ensure_state(state)
+        if random.random() < self.eps:
+            return random.choice(self.actions)
+        # greedy
+        best = max(self.q[state].items(), key=lambda x: x[1])[0]
+        return best
+
+    def update(self, state: Tuple, action: str, reward: float, next_state: Tuple) -> None:
+        self._ensure_state(state)
+        self._ensure_state(next_state)
+        qsa = self.q[state][action]
+        max_next = max(self.q[next_state].values()) if self.q[next_state] else 0.0
+        self.q[state][action] = qsa + self.alpha * (reward + self.gamma * max_next - qsa)
+
+
+class Explainability:
+    @staticmethod
+    def explain_precedence(a: Dict[str, Any], b: Dict[str, Any]) -> str:
+        # very small natural language explanation
+        if a.get("priority", 1) > b.get("priority", 1):
+            return f"Train {a.get('train_id')} allowed before {b.get('train_id')} due to higher priority & lower cumulative delay."
+        return f"Train {a.get('train_id')} allowed before {b.get('train_id')} following safe headway and platform availability."
 from dataclasses import dataclass
 from typing import List, Dict, Any, Tuple
 from datetime import datetime, timedelta, timezone

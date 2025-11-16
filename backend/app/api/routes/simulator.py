@@ -1,3 +1,59 @@
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, BackgroundTasks
+from fastapi.responses import JSONResponse
+from typing import Any
+import asyncio
+
+from app.services.simulator import SimulationEngine
+
+router = APIRouter()
+
+# Single global engine for simplicity (in-memory)
+engine = SimulationEngine()
+
+
+@router.post("/start")
+async def start_simulation(background_tasks: BackgroundTasks) -> Any:
+    if engine.running:
+        return JSONResponse({"status": "already_running"})
+    # start runs in background
+    background_tasks.add_task(engine.start)
+    return JSONResponse({"status": "started"})
+
+
+@router.post("/stop")
+async def stop_simulation() -> Any:
+    await engine.stop()
+    return JSONResponse({"status": "stopped"})
+
+
+@router.post("/reset")
+async def reset_simulation() -> Any:
+    await engine.reset()
+    return JSONResponse({"status": "reset"})
+
+
+@router.get("/status")
+def sim_status() -> Any:
+    return {"running": engine.running, "tick": engine.tick}
+
+
+@router.websocket("/ws/sim-stream")
+async def sim_stream(ws: WebSocket) -> None:
+    await ws.accept()
+    sub_id = engine.add_subscriber(ws)
+    try:
+        while True:
+            # Keep connection alive while allowing client pings
+            msg = await ws.receive_text()
+            if msg == "ping":
+                await ws.send_text("pong")
+    except WebSocketDisconnect:
+        engine.remove_subscriber(sub_id)
+    except Exception:
+        try:
+            engine.remove_subscriber(sub_id)
+        except Exception:
+            pass
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import List, Optional, Literal

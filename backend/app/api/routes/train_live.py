@@ -6,17 +6,18 @@ from datetime import datetime
 import httpx
 from fastapi import APIRouter, HTTPException, Query
 from dotenv import load_dotenv
+from app.core.config import settings
 
 # Load .env file
 load_dotenv()
 
 router = APIRouter()
 
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
-RAPIDAPI_HOST = "irctc1.p.rapidapi.com"
+# Use RAPIDAPI_KEY from env, or fallback to RAPIDAPI_IRCTC_KEY from settings, or None
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY") or settings.RAPIDAPI_IRCTC_KEY
+RAPIDAPI_HOST = os.getenv("RAPIDAPI_HOST") or settings.RAPIDAPI_IRCTC_HOST or "irctc1.p.rapidapi.com"
 
-if not RAPIDAPI_KEY:
-    raise RuntimeError("Missing RAPIDAPI_KEY in environment variables or .env file")
+# Don't raise error at import time - check at runtime instead
 
 
 def convert_time(raw_time):

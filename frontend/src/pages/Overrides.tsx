@@ -142,6 +142,7 @@ export default function OverridesPage() {
 						<thead className="bg-blue-100 border-b border-gray-200">
 							<tr>
 								<th className="text-left p-4 font-bold text-gray-900 border-r border-gray-300">Timestamp</th>
+								<th className="text-left p-4 font-bold text-gray-900 border-r border-gray-300">Controller ID</th>
 								<th className="text-left p-4 font-bold text-gray-900 border-r border-gray-300">AI Suggestion</th>
 								<th className="text-left p-4 font-bold text-gray-900 border-r border-gray-300">Controller Override</th>
 								<th className="text-left p-4 font-bold text-gray-900 border-r border-gray-300">Reason</th>
@@ -155,6 +156,12 @@ export default function OverridesPage() {
 								return (
 									<tr key={r.id} className={`bg-blue-50 border-b border-gray-100 ${isOverride ? 'bg-orange-50' : 'bg-green-50'}`}>
 										<td className="p-4 border-r border-gray-200 font-mono text-xs">{formatTimestamp(r.timestamp)}</td>
+										<td className="p-4 border-r border-gray-200">
+											<div className="text-xs text-gray-700">
+												<div className="font-semibold">{r.controller_id}</div>
+												<div>{r.train_id || '-'}</div>
+											</div>
+										</td>
 										<td className="p-4 border-r border-gray-200">
 											<div className="flex items-center gap-2">
 												<span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">AI</span>
@@ -197,7 +204,7 @@ export default function OverridesPage() {
 							})}
 							{rows.length === 0 && (
 								<tr>
-									<td colSpan={5} className="p-8 text-center text-gray-500">
+									<td colSpan={6} className="p-8 text-center text-gray-500">
 										No overrides found
 									</td>
 								</tr>

@@ -30,8 +30,12 @@ class Settings:
 	SQLALCHEMY_ECHO: bool = os.getenv("SQLALCHEMY_ECHO", "false").lower() == "true"
 
 	# RapidAPI IRCTC configuration
-	RAPIDAPI_IRCTC_KEY: str | None = os.getenv("RAPIDAPI_IRCTC_KEY", "1928f149cbmsh4c78c3caf1c30bdp1db641jsn64b1fd5e4ac1")
-	RAPIDAPI_IRCTC_HOST: str = os.getenv("RAPIDAPI_IRCTC_HOST", "irctc1.p.rapidapi.com")
+	RAPIDAPI_IRCTC_KEY: str | None = os.getenv("RAPIDAPI_IRCTC_KEY")
+	RAPIDAPI_IRCTC_HOST: str | None = os.getenv("RAPIDAPI_IRCTC_HOST")
+	
+	# Weather API configuration
+	WEATHER_API_KEY: str | None = os.getenv("WEATHER_API_KEY")
+	WEATHER_API_PROVIDER: str = os.getenv("WEATHER_API_PROVIDER", "openweather")
 	
 	def __init__(self):
 		"""Validate database configuration on initialization"""

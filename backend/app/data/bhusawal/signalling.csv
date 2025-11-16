@@ -1,0 +1,14 @@
+signal_id,section_id,signal_type,position_km,division
+BWS_SIG001,BWS_S10,Semaphore,38.933,bhusaval
+BWS_SIG002,BWS_S18,Colour Light,71.581,bhusaval
+BWS_SIG003,BWS_S10,Semaphore,64.887,bhusaval
+BWS_SIG004,BWS_S15,Semaphore,30.368,bhusaval
+BWS_SIG005,BWS_S17,Semaphore,48.848,bhusaval
+BWS_SIG006,BWS_S12,Automatic Block,32.339,bhusaval
+BWS_SIG007,BWS_S13,Semaphore,46.704,bhusaval
+BWS_SIG008,BWS_S5,Automatic Block,26.022,bhusaval
+BWS_SIG009,BWS_S10,Semaphore,45.017,bhusaval
+BWS_SIG010,BWS_S3,Automatic Block,12.022,bhusaval
+BWS_SIG011,BWS_S2,Semaphore,10.889,bhusaval
+BWS_SIG012,BWS_S12,Automatic Block,26.348,bhusaval
+BWS_SIG013,BWS_S18,Semaphore,75.792,bhusaval

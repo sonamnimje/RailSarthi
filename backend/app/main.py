@@ -2,9 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .api.routes import ingest, optimizer, simulator, overrides, ws, users, reports, train_logs, train_live
+from .api.routes import ingest, optimizer, simulator, overrides, ws, users, reports, train_logs, train_live, weather, train_realtime, ai_routes
+from .api.routes import live_routes, weather_routes
+from .api.routes import recommendations
 from .db.session import engine, SessionLocal, test_connection
 from .db.models import Base
+from .db import models_sim  # Import to register OverrideLog model
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 import os
@@ -62,16 +65,14 @@ def create_app() -> FastAPI:
 	app.include_router(train_logs.router, prefix="/api/train-logs", tags=["train-logs"])
 	app.include_router(train_live.router, prefix="/api/live", tags=["live-train"])
 	app.include_router(ws.router, tags=["ws"])# exposes /ws/live
+	app.include_router(weather.router, prefix="/api", tags=["weather"])
+	app.include_router(train_realtime.router, prefix=f"{settings.API_PREFIX}/live")
+	app.include_router(ai_routes.router)  # exposes /api/ai/* endpoints
+	app.include_router(live_routes.router)  # exposes /api/live/* endpoints
+	app.include_router(weather_routes.router)  # exposes /api/weather/* endpoints
+	# Recommendations API
+	app.include_router(recommendations.router, prefix="/api/recommendations", tags=["recommendations"])
 
-	# Serve generated master charts (PNG, CSV, JSON) as static files
-	# Directory is relative to backend/ working dir: outputs/master_charts
-	static_dir = os.path.join("outputs", "master_charts")
-	if not os.path.isdir(static_dir):
-		try:
-			os.makedirs(static_dir, exist_ok=True)
-		except Exception:
-			pass
-	app.mount("/static/master_charts", StaticFiles(directory=static_dir), name="master_charts")
 
 	# Ensure database tables exist on startup
 	@app.on_event("startup")
