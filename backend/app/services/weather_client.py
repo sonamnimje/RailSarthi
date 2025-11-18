@@ -21,7 +21,9 @@ class WeatherClient:
 			"units": "metric"
 		}
 
-		async with httpx.AsyncClient(timeout=20.0) as client:
+		# Use connection pooling to prevent file descriptor exhaustion
+		limits = httpx.Limits(max_keepalive_connections=5, max_connections=10)
+		async with httpx.AsyncClient(timeout=20.0, limits=limits) as client:
 			response = await client.get(self.BASE_URL, params=params)
 			response.raise_for_status()
 			return response.json()

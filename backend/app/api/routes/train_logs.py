@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from .users import require_role
 from app.db.session import get_db
 from app.db.models import TrainLog, TrainSchedule, Train, Station
-from app.services.rapidapi_client import RapidAPIClient
+# RapidAPIClient is now accessed via get_rapidapi_client() singleton
 from app.services.fetch_rapidapi_trains import (
     fetch_and_insert_rapidapi_status,
     fetch_and_insert_rapidapi_schedule,
@@ -291,7 +291,8 @@ async def get_train_schedule_rapidapi(
     This shows what the train is supposed to do as per Indian Railways' official timetable.
     """
     try:
-        client = RapidAPIClient()
+        from app.services.rapidapi_client import get_rapidapi_client
+        client = get_rapidapi_client()
         schedule_data = await client.get_train_schedule(trainNo)
         return {
             "trainNo": trainNo,
@@ -319,7 +320,8 @@ async def get_live_train_status_rapidapi(
     If sync_to_db is True, the data will also be stored in the database.
     """
     try:
-        client = RapidAPIClient()
+        from app.services.rapidapi_client import get_rapidapi_client
+        client = get_rapidapi_client()
         status_data = await client.get_live_train_status(trainNo, startDay)
         
         # Optionally sync to database
@@ -423,7 +425,8 @@ async def get_live_station_rapidapi(
     within the specified time window.
     """
     try:
-        client = RapidAPIClient()
+        from app.services.rapidapi_client import get_rapidapi_client
+        client = get_rapidapi_client()
         station_data = await client.get_live_station(fromStationCode, toStationCode, hours)
         return {
             "fromStationCode": fromStationCode,
@@ -451,7 +454,8 @@ async def get_trains_between_stations_rapidapi(
     including train numbers, names, departure/arrival times, and availability.
     """
     try:
-        client = RapidAPIClient()
+        from app.services.rapidapi_client import get_rapidapi_client
+        client = get_rapidapi_client()
         trains_data = await client.get_trains_between_stations(fromStationCode, toStationCode, date)
         return {
             "fromStationCode": fromStationCode,

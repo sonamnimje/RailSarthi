@@ -53,7 +53,7 @@ export default function SettingsPage() {
 
 	return (
 		<ProtectedAdminRoute>
-			<div className="min-h-screen bg-gray-50">
+			<div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50">
 				<div className="flex h-screen overflow-hidden">
 					{/* Left Sidebar */}
 					<aside className="w-64 bg-white border-r border-gray-200 flex-shrink-0 overflow-y-auto">
@@ -102,7 +102,7 @@ export default function SettingsPage() {
 					</aside>
 
 					{/* Right Content Area */}
-					<main className="flex-1 overflow-y-auto bg-gray-50">
+					<main className="flex-1 overflow-y-auto bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50">
 						<div className="max-w-5xl mx-auto p-6 lg:p-8">
 							{/* Header with Save Button */}
 							<div className="flex items-center justify-between mb-6">

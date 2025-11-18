@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 import logging
 from dataclasses import dataclass
 
-from app.services.rapidapi_client import RapidAPIClient
+from app.services.rapidapi_client import get_rapidapi_client
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class LiveIntegrationEngine:
     def __init__(self):
         """Initialize live integration engine"""
         try:
-            self.rapidapi_client = RapidAPIClient()
+            self.rapidapi_client = get_rapidapi_client()
             self.enabled = True
         except Exception as e:
             logger.warning(f"RapidAPI client initialization failed: {e}. Live integration disabled.")

@@ -739,12 +739,11 @@ export type AIRecommendation = {
 
 export async function getRecommendations(division: string): Promise<AIRecommendation[]> {
 	const res = await fetch(`${apiBaseUrl}/api/ai/recommendation?division=${encodeURIComponent(division)}`, {
-		method: 'POST',
+		method: 'GET',
 		headers: { 
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${localStorage.getItem('token') || ''}` 
-		},
-		body: JSON.stringify({})
+		}
 	})
 	if (!res.ok) throw new Error('Failed to fetch recommendations')
 	return (await res.json()) as AIRecommendation[]
@@ -800,167 +799,129 @@ export async function submitOverride(
 	return (await res.json()) as { status: string; override_id: string }
 }
 
-// Digital Twin API functions - REMOVED
-/*
-export type DigitalTwinDivision = {
-	divisions: string[];
-	count: number;
-};
-
-export type DigitalTwinStaticData = {
+// Digital Twin API functions
+export type DigitalTwinMapData = {
 	division: string;
 	stations: Array<{
-		code: string;
-		name: string;
+		stationCode: string;
+		stationName: string;
 		lat: number;
 		lon: number;
-		is_junction?: boolean;
-		platforms?: number;
 	}>;
 	sections: Array<{
 		section_id: string;
-		from_station: string;
-		to_station: string;
-		distance_km: number;
-		tracks: number;
-		max_speed_kmph: number;
-	}>;
-	bridges: Array<{
-		bridgeId: string;
-		sectionId: string;
-		type: string;
-		length_m: number;
-		condition: string;
-	}>;
-	curves: Array<{
-		curveId: string;
-		sectionId: string;
-		radius_m: number;
-		gradient_per_mille: number;
-	}>;
-	lc_gates: Array<{
-		gateId: string;
-		sectionId: string;
-		type: string;
-		traffic_density: string;
+		from: string;
+		to: string;
 	}>;
 };
 
-export type DigitalTwinLiveData = {
+export type DigitalTwinPosition = {
+	trainNo: string;
+	trainName?: string;
+	trainType?: string;
+	position: {
+		sectionId: string;
+		progress: number; // 0.0 to 1.0, how far along the section
+	};
+	speed?: number;
+	status?: 'RUNNING' | 'STOPPED' | 'DELAYED';
+	delay?: number;
+};
+
+export type DigitalTwinPositionsResponse = {
 	timestamp: string;
-	trains: Array<{
-		trainNo: string;
+	trains: DigitalTwinPosition[];
+};
+
+export async function fetchDigitalTwinMap(division: string): Promise<DigitalTwinMapData> {
+	const res = await fetch(`${apiBaseUrl}/api/digital-twin/${encodeURIComponent(division)}/map`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	});
+	if (!res.ok) throw new Error('Failed to fetch digital twin map data');
+	return (await res.json()) as DigitalTwinMapData;
+}
+
+export async function fetchDigitalTwinPositions(division: string): Promise<DigitalTwinPositionsResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/digital-twin/${encodeURIComponent(division)}/positions`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	});
+	if (!res.ok) throw new Error('Failed to fetch digital twin positions');
+	return (await res.json()) as DigitalTwinPositionsResponse;
+}
+
+// India Railway Map API functions
+export type IndiaRailwayMapData = {
+	stations: Array<{
+		stationCode: string;
+		stationName: string;
 		lat: number;
 		lon: number;
-		speed: number;
-		sectionId: string;
-		status: 'RUNNING' | 'STOPPED' | 'DELAYED';
+		division: string;
+		isJunction: boolean;
 	}>;
 	sections: Array<{
-		sectionId: string;
-		congestion: number;
-	}>;
-	alerts: Array<{
-		type: string;
-		section?: string;
-		severity: string;
-		message: string;
+		section_id: string;
+		from: string;
+		to: string;
+		division: string;
+		isTrunk: boolean;
+		distanceKm: number;
 	}>;
 };
 
-export type DigitalTwinOverlayData = {
-	weather: {
-		temperature: number;
-		condition: string;
-		humidity: number;
-		wind_speed: number;
+export type IndiaRailwayPosition = {
+	trainNo: string;
+	trainName?: string;
+	trainType?: string;
+	position: {
+		sectionId: string;
+		progress: number;
 	};
-	congestion: Array<{
-		sectionId: string;
-		congestion: number;
-	}>;
-	alerts: Array<{
-		type: string;
-		section?: string;
-		severity: string;
-		message: string;
-	}>;
-};
-
-export async function fetchDigitalTwinDivisions(): Promise<DigitalTwinDivision> {
-	const res = await fetch(`${apiBaseUrl}/api/digital-twin/divisions`, {
-		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-	});
-	if (!res.ok) throw new Error('Failed to fetch divisions');
-	return (await res.json()) as DigitalTwinDivision;
-}
-
-export async function fetchDigitalTwinStatic(division: string): Promise<DigitalTwinStaticData> {
-	const res = await fetch(`${apiBaseUrl}/api/digital-twin/${encodeURIComponent(division)}/static`, {
-		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-	});
-	if (!res.ok) throw new Error('Failed to fetch static data');
-	return (await res.json()) as DigitalTwinStaticData;
-}
-
-export async function fetchDigitalTwinLive(division: string): Promise<DigitalTwinLiveData> {
-	const res = await fetch(`${apiBaseUrl}/api/digital-twin/${encodeURIComponent(division)}/live`, {
-		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-	});
-	if (!res.ok) throw new Error('Failed to fetch live data');
-	return (await res.json()) as DigitalTwinLiveData;
-}
-
-export async function fetchDigitalTwinOverlays(division: string): Promise<DigitalTwinOverlayData> {
-	const res = await fetch(`${apiBaseUrl}/api/digital-twin/${encodeURIComponent(division)}/overlays`, {
-		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-	});
-	if (!res.ok) throw new Error('Failed to fetch overlay data');
-	return (await res.json()) as DigitalTwinOverlayData;
-}
-
-// Simulation Master Chart API
-export type MasterChartStation = {
-	code: string;
-	name: string;
-	distance: number;
-	order: number;
-};
-
-export type MasterChartTrain = {
-	train_no: string;
-	train_name: string;
-	train_type: string;
-	priority: number;
-	points: Array<{
-		time: string;
-		station: string;
-		distance: number;
-	}>;
-};
-
-export type MasterChartData = {
+	speed?: number;
+	status?: 'RUNNING' | 'STOPPED' | 'DELAYED';
+	delay?: number;
 	division: string;
-	stations: MasterChartStation[];
-	trains: MasterChartTrain[];
-	generated_at?: string;
 };
 
-export async function fetchMasterChart(
-	division: string,
-	trainType?: string,
-	priorityMin?: number
-): Promise<MasterChartData> {
-	const params = new URLSearchParams({ division });
-	if (trainType) params.append('train_type', trainType);
-	if (priorityMin !== undefined) params.append('priority_min', priorityMin.toString());
-	const res = await fetch(`${apiBaseUrl}/api/master-chart?${params}`, {
+export type IndiaRailwayPositionsResponse = {
+	timestamp: string;
+	trains: IndiaRailwayPosition[];
+};
+
+export async function fetchIndiaRailwayMap(): Promise<IndiaRailwayMapData> {
+	try {
+		const res = await fetch(`${apiBaseUrl}/api/digital-twin/india/map`, {
+			headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+		});
+		
+		if (!res.ok) {
+			const errorText = await res.text();
+			let errorMessage = `Failed to fetch India railway map data (${res.status})`;
+			try {
+				const errorJson = JSON.parse(errorText);
+				errorMessage = errorJson.detail || errorMessage;
+			} catch {
+				errorMessage = errorText || errorMessage;
+			}
+			throw new Error(errorMessage);
+		}
+		
+		const data = await res.json() as IndiaRailwayMapData;
+		console.log('India map API response:', { stations: data.stations?.length || 0, sections: data.sections?.length || 0 });
+		return data;
+	} catch (error) {
+		console.error('fetchIndiaRailwayMap error:', error);
+		throw error;
+	}
+}
+
+export async function fetchIndiaRailwayPositions(): Promise<IndiaRailwayPositionsResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/digital-twin/india/positions`, {
 		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
 	});
-	if (!res.ok) throw new Error('Failed to fetch master chart');
-	return (await res.json()) as MasterChartData;
+	if (!res.ok) throw new Error('Failed to fetch India railway positions');
+	return (await res.json()) as IndiaRailwayPositionsResponse;
 }
-*/
 
 // Simulation Run API
 export type DelayInput = {

@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
 
 from ..core.config import settings
-from ..services.rapidapi_client import RapidAPIClient
+from ..services.rapidapi_client import get_rapidapi_client
 from ..db.session import SessionLocal, get_db_session
 from ..db.models import TrainLog, TrainSchedule, Train, Station
 
@@ -91,7 +91,8 @@ async def fetch_and_insert_rapidapi_status(
 		"errors": []
 	}
 	
-	client = RapidAPIClient()
+	from app.services.rapidapi_client import get_rapidapi_client
+	client = get_rapidapi_client()
 	
 	try:
 		# Fetch live status from RapidAPI
@@ -316,7 +317,8 @@ async def fetch_and_insert_rapidapi_schedule(train_no: str) -> Dict[str, Any]:
 		"errors": []
 	}
 	
-	client = RapidAPIClient()
+	from app.services.rapidapi_client import get_rapidapi_client
+	client = get_rapidapi_client()
 	
 	try:
 		# Fetch schedule from RapidAPI

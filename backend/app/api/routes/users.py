@@ -188,11 +188,16 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        # Safe JWT parsing - check if token has proper format first
+        if not token or len(token.split('.')) != 3:
+            raise credentials_exception
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         username: str = payload.get("sub")  # type: ignore[assignment]
         if username is None:
             raise credentials_exception
-    except JWTError:
+    except (JWTError, ValueError, AttributeError) as e:
+        # Silently return 401 without spamming logs for invalid tokens
+        logger.debug(f"JWT validation failed: {type(e).__name__}")
         raise credentials_exception
     try:
         user: User | None = db.query(User).filter(User.username == username).first()

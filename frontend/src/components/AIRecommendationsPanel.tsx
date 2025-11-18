@@ -1,161 +1,249 @@
-import React, { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import AIRecommendationCard from './AIRecommendationCard';
-import { AIRecommendation } from '../lib/api';
+import React, { useState, useEffect } from 'react';
+import { Brain, CheckCircle2, X, AlertTriangle, Info, Zap } from 'lucide-react';
+import { getRecommendations, acceptRecommendation, submitOverride, type AIRecommendation } from '../lib/api';
 
-type AIRecommendationsPanelProps = {
-	recommendations: AIRecommendation[];
+interface AIRecommendationsPanelProps {
 	division: string;
-	onAccept?: (recommendationId: string) => void;
-	onOverride?: (recommendationId: string) => void;
-};
+	onRecommendationAccepted?: (recommendationId: string) => void;
+	onRecommendationOverridden?: (recommendationId: string, reason: string) => void;
+}
 
-export default function AIRecommendationsPanel({
-	recommendations,
-	division,
-	onAccept,
-	onOverride,
+export default function AIRecommendationsPanel({ 
+	division, 
+	onRecommendationAccepted,
+	onRecommendationOverridden 
 }: AIRecommendationsPanelProps) {
-	const [kpiHistory, setKpiHistory] = useState<Array<{ time: string; punctuality: number; avgDelay: number; throughput: number }>>([]);
+	const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [expandedId, setExpandedId] = useState<string | null>(null);
+	const [overrideReason, setOverrideReason] = useState<Record<string, string>>({});
 
-	useEffect(() => {
-		// Update KPI history when recommendations change
-		if (recommendations.length > 0) {
-			const avgConfidence = recommendations.reduce((sum, r) => sum + r.confidence, 0) / recommendations.length;
-			const estimatedPunctuality = avgConfidence * 95; // Estimate based on confidence
-			const estimatedDelay = recommendations.reduce((sum, r) => 
-				sum + (r.expected_delta_kpis?.delay_reduction_minutes || 0), 0) / recommendations.length;
-			const estimatedThroughput = 100 - (recommendations.length * 2); // Simplified
-
-			setKpiHistory(prev => {
-				const newEntry = {
-					time: new Date().toLocaleTimeString(),
-					punctuality: estimatedPunctuality,
-					avgDelay: estimatedDelay,
-					throughput: estimatedThroughput,
-				};
-				const updated = [...prev, newEntry].slice(-10); // Keep last 10 entries
-				return updated;
-			});
+	// Fetch recommendations
+	const fetchRecommendations = async () => {
+		try {
+			setLoading(true);
+			setError(null);
+			const data = await getRecommendations(division);
+			setRecommendations(data);
+		} catch (err) {
+			console.error('Failed to fetch recommendations:', err);
+			setError(err instanceof Error ? err.message : 'Failed to fetch recommendations');
+		} finally {
+			setLoading(false);
 		}
-	}, [recommendations]);
-
-	const urgencyCounts = {
-		high: recommendations.filter(r => r.confidence < 0.4).length,
-		medium: recommendations.filter(r => r.confidence >= 0.4 && r.confidence < 0.7).length,
-		low: recommendations.filter(r => r.confidence >= 0.7).length,
 	};
 
-	const avgConfidence = recommendations.length > 0
-		? recommendations.reduce((sum, r) => sum + r.confidence, 0) / recommendations.length
-		: 0;
+	useEffect(() => {
+		fetchRecommendations();
+		const interval = setInterval(fetchRecommendations, 30000); // Refresh every 30 seconds
+		return () => clearInterval(interval);
+	}, [division]);
+
+	const handleAccept = async (recommendation: AIRecommendation) => {
+		try {
+			await acceptRecommendation(division, recommendation.conflict_id);
+			if (onRecommendationAccepted) {
+				onRecommendationAccepted(recommendation.conflict_id);
+			}
+			// Remove accepted recommendation
+			setRecommendations(prev => prev.filter(r => r.conflict_id !== recommendation.conflict_id));
+		} catch (err) {
+			console.error('Failed to accept recommendation:', err);
+			setError('Failed to accept recommendation');
+		}
+	};
+
+	const handleOverride = async (recommendation: AIRecommendation) => {
+		const reason = overrideReason[recommendation.conflict_id] || 'Manual override';
+		try {
+			await submitOverride(division, recommendation.conflict_id, {
+				action: 'override',
+				reason
+			}, reason);
+			if (onRecommendationOverridden) {
+				onRecommendationOverridden(recommendation.conflict_id, reason);
+			}
+			// Remove overridden recommendation
+			setRecommendations(prev => prev.filter(r => r.conflict_id !== recommendation.conflict_id));
+		} catch (err) {
+			console.error('Failed to override recommendation:', err);
+			setError('Failed to override recommendation');
+		}
+	};
+
+	const getConfidenceColor = (confidence: number) => {
+		if (confidence >= 0.8) return 'text-green-600 bg-green-50';
+		if (confidence >= 0.6) return 'text-yellow-600 bg-yellow-50';
+		return 'text-red-600 bg-red-50';
+	};
+
+	if (loading && recommendations.length === 0) {
+		return (
+			<div className="w-full bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+				<div className="flex items-center justify-center h-32">
+					<div className="text-gray-500">Loading AI recommendations...</div>
+				</div>
+			</div>
+		);
+	}
+
+	if (error && recommendations.length === 0) {
+		return (
+			<div className="w-full bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+				<div className="flex items-center justify-center h-32">
+					<div className="text-red-500">Error: {error}</div>
+				</div>
+			</div>
+		);
+	}
 
 	return (
-		<div className="h-full flex flex-col bg-white text-gray-900">
-			{/* Header */}
-			<div className="p-4 border-b border-gray-200">
-				<h2 className="text-lg font-bold mb-2 text-green-600">AI-Powered Decision Support</h2>
-				<div className="flex gap-2 text-xs">
-					<span className={`px-2 py-1 rounded text-white ${urgencyCounts.high > 0 ? 'bg-red-600' : 'bg-gray-400'}`}>
-						High: {urgencyCounts.high}
-					</span>
-					<span className={`px-2 py-1 rounded text-white ${urgencyCounts.medium > 0 ? 'bg-yellow-600' : 'bg-gray-400'}`}>
-						Medium: {urgencyCounts.medium}
-					</span>
-					<span className={`px-2 py-1 rounded text-white ${urgencyCounts.low > 0 ? 'bg-green-600' : 'bg-gray-400'}`}>
-						Low: {urgencyCounts.low}
-					</span>
-				</div>
+		<div className="w-full bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+			<div className="flex items-center justify-between mb-4">
+				<h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+					<Brain className="w-5 h-5 text-purple-600" />
+					AI Recommendations
+				</h3>
+				<button
+					onClick={fetchRecommendations}
+					className="text-sm text-blue-600 hover:text-blue-700"
+				>
+					Refresh
+				</button>
 			</div>
 
-			{/* Impact Metrics - Simulated */}
-			{recommendations.length > 0 && (
-				<div className="p-4 border-b border-gray-200 bg-gray-50">
-					<div className="text-sm font-semibold text-gray-700 mb-3">Impact Metrics (Simulated)</div>
-					<div className="space-y-3">
-						<div>
-							<div className="flex justify-between items-center mb-1">
-								<span className="text-xs text-gray-600">Estimated Delay Saved</span>
-								<span className="text-sm font-bold text-green-600">
-									+{Math.round(recommendations.reduce((sum, r) => 
-										sum + (r.expected_delta_kpis?.delay_reduction_minutes || 0), 0))} min
-								</span>
-							</div>
-							<div className="w-full bg-gray-200 rounded-full h-2">
-								<div 
-									className="bg-green-500 h-2 rounded-full transition-all"
-									style={{ width: `${Math.min(100, Math.round(recommendations.reduce((sum, r) => 
-										sum + (r.expected_delta_kpis?.delay_reduction_minutes || 0), 0)) / 2)}%` }}
-								/>
-							</div>
-						</div>
-						<div>
-							<div className="flex justify-between items-center mb-1">
-								<span className="text-xs text-gray-600">Section Throughput Change</span>
-								<span className="text-sm font-bold text-green-600">
-									+{Math.round(Math.abs(recommendations.reduce((sum, r) => 
-										sum + (r.expected_delta_kpis?.throughput_impact || 0), 0) / recommendations.length) * 100)}%
-								</span>
-							</div>
-							<div className="w-full bg-gray-200 rounded-full h-2">
-								<div 
-									className="bg-gray-400 h-2 rounded-full transition-all"
-									style={{ width: `${Math.min(100, Math.abs(recommendations.reduce((sum, r) => 
-										sum + (r.expected_delta_kpis?.throughput_impact || 0), 0) / recommendations.length) * 100)}%` }}
-								/>
-							</div>
-						</div>
-						<div>
-							<div className="flex justify-between items-center mb-1">
-								<span className="text-xs text-gray-600">Fuel/Energy Saved</span>
-								<span className="text-sm font-bold text-green-600">
-									{Math.round(recommendations.reduce((sum, r) => 
-										sum + (r.expected_delta_kpis?.delay_reduction_minutes || 0), 0) * 0.5)} Liters
-								</span>
-							</div>
-						</div>
-					</div>
+			{recommendations.length === 0 ? (
+				<div className="text-center py-8 text-gray-500">
+					<Brain className="w-12 h-12 mx-auto mb-2 opacity-50" />
+					<p>No recommendations at this time</p>
 				</div>
-			)}
-
-			{/* KPI Chart */}
-			{kpiHistory.length > 0 && (
-				<div className="h-32 p-4 border-b border-gray-200">
-					<ResponsiveContainer width="100%" height="100%">
-						<LineChart data={kpiHistory}>
-							<CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-							<XAxis dataKey="time" stroke="#6B7280" fontSize={10} />
-							<YAxis stroke="#6B7280" fontSize={10} />
-							<Tooltip
-								contentStyle={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '4px' }}
-								labelStyle={{ color: '#374151' }}
-							/>
-							<Line type="monotone" dataKey="punctuality" stroke="#10B981" strokeWidth={2} dot={false} />
-						</LineChart>
-					</ResponsiveContainer>
-				</div>
-			)}
-
-			{/* Recommendations List */}
-			<div className="flex-1 overflow-y-auto p-4">
-				{recommendations.length === 0 ? (
-					<div className="text-center text-gray-500 text-sm py-8">
-						<div className="mb-2">🤖 AI monitoring the network...</div>
-						<span className="text-xs text-gray-400">No active conflicts detected</span>
-					</div>
-				) : (
-					recommendations.map((rec) => (
-						<AIRecommendationCard
+			) : (
+				<div className="space-y-3 max-h-[600px] overflow-y-auto">
+					{recommendations.map((rec) => (
+						<div
 							key={rec.conflict_id}
-							recommendation={rec}
-							division={division}
-							onAccept={onAccept}
-							onOverride={onOverride}
-						/>
-					))
-				)}
-			</div>
+							className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+						>
+							{/* Header */}
+							<div className="flex items-start justify-between mb-2">
+								<div className="flex-1">
+									<div className="flex items-center gap-2 mb-1">
+										<h4 className="font-semibold text-gray-900">
+											{rec.conflict?.type === 'head-on' ? 'Head-on Conflict' :
+											 rec.conflict?.type === 'overtake' ? 'Overtake Recommendation' :
+											 rec.conflict?.type === 'platform' ? 'Platform Assignment' :
+											 'Train Precedence'}
+										</h4>
+										<span className={`px-2 py-1 rounded text-xs font-semibold ${getConfidenceColor(rec.confidence)}`}>
+											{Math.round(rec.confidence * 100)}% confidence
+										</span>
+									</div>
+									{rec.conflict && (
+										<p className="text-sm text-gray-600">
+											Section: {rec.conflict.section} • Trains: {rec.conflict.trains.join(', ')}
+										</p>
+									)}
+								</div>
+							</div>
+
+							{/* Recommendation Summary */}
+							<div className="bg-blue-50 rounded p-3 mb-3 border border-blue-200">
+								<div className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2">
+									<Zap className="w-4 h-4" />
+									Recommendation
+								</div>
+								<div className="text-xs text-gray-900 space-y-1">
+									{rec.solution.precedence.length > 0 && (
+										<div>
+											<span className="text-gray-600">Precedence: </span>
+											<span className="font-semibold text-blue-700">
+												{rec.solution.precedence.join(' → ')}
+											</span>
+										</div>
+									)}
+									{Object.keys(rec.solution.holds).length > 0 && (
+										<div>
+											{Object.entries(rec.solution.holds).map(([train, seconds]) => (
+												<div key={train}>
+													<span className="text-gray-600">Hold {train}: </span>
+													<span className="font-semibold text-orange-700">
+														{Math.round(seconds / 60)} min
+													</span>
+												</div>
+											))}
+										</div>
+									)}
+									{rec.solution.crossing && (
+										<div>
+											<span className="text-gray-600">Crossing at: </span>
+											<span className="font-semibold text-blue-700">{rec.solution.crossing}</span>
+										</div>
+									)}
+								</div>
+							</div>
+
+							{/* Why Section - Expandable */}
+							<div className="mb-3">
+								<button
+									onClick={() => setExpandedId(expandedId === rec.conflict_id ? null : rec.conflict_id)}
+									className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 w-full text-left"
+								>
+									<Info className="w-4 h-4" />
+									<span className="font-semibold">WHY</span>
+									<span className="ml-auto">{expandedId === rec.conflict_id ? '−' : '+'}</span>
+								</button>
+								{expandedId === rec.conflict_id && (
+									<div className="mt-2 p-3 bg-gray-50 rounded text-sm text-gray-700">
+										{rec.explanation || 'No explanation available'}
+									</div>
+								)}
+							</div>
+
+							{/* What If Section */}
+							{rec.expected_delta_kpis && (
+								<div className="mb-3 p-2 bg-green-50 rounded border border-green-200">
+									<div className="text-xs font-semibold text-green-700 mb-1">Expected Impact:</div>
+									<div className="text-xs text-gray-700">
+										{rec.expected_delta_kpis.delay_reduction_minutes > 0 && (
+											<div>Delay reduction: {rec.expected_delta_kpis.delay_reduction_minutes.toFixed(1)} min</div>
+										)}
+										{rec.expected_delta_kpis.throughput_impact !== 0 && (
+											<div>Throughput: {rec.expected_delta_kpis.throughput_impact > 0 ? '+' : ''}
+												{rec.expected_delta_kpis.throughput_impact.toFixed(1)} trains/hour
+											</div>
+										)}
+									</div>
+								</div>
+							)}
+
+							{/* Actions */}
+							<div className="flex gap-2">
+								<button
+									onClick={() => handleAccept(rec)}
+									className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold flex items-center justify-center gap-2"
+								>
+									<CheckCircle2 className="w-4 h-4" />
+									Accept
+								</button>
+								<button
+									onClick={() => {
+										const reason = prompt('Enter override reason:');
+										if (reason) {
+											setOverrideReason(prev => ({ ...prev, [rec.conflict_id]: reason }));
+											handleOverride(rec);
+										}
+									}}
+									className="flex-1 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-semibold flex items-center justify-center gap-2"
+								>
+									<X className="w-4 h-4" />
+									Override
+								</button>
+							</div>
+						</div>
+					))}
+				</div>
+			)}
 		</div>
 	);
 }
-

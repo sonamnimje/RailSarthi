@@ -230,6 +230,17 @@ body { @apply bg-blue-50 text-gray-800 text-base sm:text-lg md:text-xl lg:text-2
 	}
 }
 
+@keyframes slide-in-right {
+	from {
+		opacity: 0;
+		transform: translateX(30px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
 @keyframes scale-in {
 	from {
 		opacity: 0;
@@ -251,6 +262,10 @@ body { @apply bg-blue-50 text-gray-800 text-base sm:text-lg md:text-xl lg:text-2
 
 .animate-slide-in-left-delay {
 	animation: slide-in-left 0.8s ease-out 0.2s both;
+}
+
+.animate-slide-in-right {
+	animation: slide-in-right 0.5s ease-out;
 }
 
 .animate-scale-in {

@@ -22,12 +22,31 @@ class RecommendationEngine:
     """
     
     def __init__(self):
-        self.state_encoder = StateEncoder()
-        self.conflict_predictor = ConflictPredictor()
-        self.optimizer_or = OptimizerOR()
-        self.rl_agent = RLAgent()
-        self.explainer = Explainer()
-        self.feedback_loop = FeedbackLoop()
+        try:
+            self.state_encoder = StateEncoder()
+            self.conflict_predictor = ConflictPredictor()
+            self.optimizer_or = OptimizerOR()
+            self.rl_agent = RLAgent()
+            self.explainer = Explainer()
+            self.feedback_loop = FeedbackLoop()
+        except Exception as e:
+            logger.warning(f"Some AI engine components failed to initialize: {e}. Continuing with available components.")
+            # Initialize with fallbacks
+            self.state_encoder = StateEncoder() if 'state_encoder' not in locals() else self.state_encoder
+            self.conflict_predictor = ConflictPredictor() if 'conflict_predictor' not in locals() else self.conflict_predictor
+            self.optimizer_or = OptimizerOR() if 'optimizer_or' not in locals() else self.optimizer_or
+            try:
+                self.rl_agent = RLAgent() if 'rl_agent' not in locals() else self.rl_agent
+            except:
+                self.rl_agent = None
+            try:
+                self.explainer = Explainer() if 'explainer' not in locals() else self.explainer
+            except:
+                self.explainer = None
+            try:
+                self.feedback_loop = FeedbackLoop() if 'feedback_loop' not in locals() else self.feedback_loop
+            except:
+                self.feedback_loop = None
         
         # Weights for combining different approaches
         self.or_weight = 0.5
@@ -122,21 +141,45 @@ class RecommendationEngine:
             return []
         
         # Encode state to tensor format
-        state_tensor = self.state_encoder.encode_graph_state(engine_state)
+        try:
+            state_tensor = self.state_encoder.encode_graph_state(engine_state)
+        except Exception as e:
+            logger.warning(f"State encoding failed: {e}. Using fallback.")
+            state_tensor = None
         
         # Get top-K conflicts from GNN
-        top_conflicts = self.conflict_predictor.predict_conflict_edges(state_tensor, top_k=10)
-        conflict_ids_top = {cid for cid, _ in top_conflicts}
+        conflict_ids_top = set()
+        try:
+            if state_tensor is not None:
+                top_conflicts = self.conflict_predictor.predict_conflict_edges(state_tensor, top_k=10)
+                conflict_ids_top = {cid for cid, _ in top_conflicts}
+        except Exception as e:
+            logger.warning(f"Conflict prediction failed: {e}. Using all conflicts.")
         
         # Filter conflicts to top-K
-        filtered_conflicts = [c for c in conflicts 
-                             if f"{c.get('type', 'unknown')}_{c.get('section', 'unknown')}" in conflict_ids_top]
+        if conflict_ids_top:
+            filtered_conflicts = [c for c in conflicts 
+                                 if f"{c.get('type', 'unknown')}_{c.get('section', 'unknown')}" in conflict_ids_top]
+        else:
+            filtered_conflicts = conflicts[:5]  # Fallback to first 5
+        
         if not filtered_conflicts:
             filtered_conflicts = conflicts[:5]  # Fallback to first 5
         
         # Get predictions from each model
-        state_encoding_np = self.state_encoder.encode_full_state(engine_state)  # For backward compat
-        gnn_risks = self.conflict_predictor.predict_conflict_scores(state_tensor)
+        try:
+            state_encoding_np = self.state_encoder.encode_full_state(engine_state)  # For backward compat
+        except:
+            state_encoding_np = None
+        
+        try:
+            if state_tensor is not None:
+                gnn_risks = self.conflict_predictor.predict_conflict_scores(state_tensor)
+            else:
+                gnn_risks = {}
+        except Exception as e:
+            logger.warning(f"GNN risk prediction failed: {e}. Using default risks.")
+            gnn_risks = {}
         
         # Build state dict for OR solver
         or_state = {
@@ -149,12 +192,28 @@ class RecommendationEngine:
         or_resolutions = {}
         for conflict in filtered_conflicts:
             conflict_id = f"{conflict.get('type', 'unknown')}_{conflict.get('section', 'unknown')}"
-            or_solution = self.optimizer_or.solve_precedence_problem(or_state, conflict)
-            or_resolutions[conflict_id] = or_solution
+            try:
+                or_solution = self.optimizer_or.solve_precedence_problem(or_state, conflict)
+                or_resolutions[conflict_id] = or_solution
+            except Exception as e:
+                logger.warning(f"OR solver failed for conflict {conflict_id}: {e}. Using empty solution.")
+                or_resolutions[conflict_id] = {}
         
         # Get RL actions
-        rl_actions_dict = self.rl_agent.rl_action(state_tensor)
-        rl_actions = self.rl_agent.get_action(state_encoding_np, filtered_conflicts, trains)
+        try:
+            if self.rl_agent and state_tensor is not None:
+                rl_actions_dict = self.rl_agent.rl_action(state_tensor)
+            else:
+                rl_actions_dict = {}
+            
+            if self.rl_agent and state_encoding_np is not None:
+                rl_actions = self.rl_agent.get_action(state_encoding_np, filtered_conflicts, trains)
+            else:
+                rl_actions = {}
+        except Exception as e:
+            logger.warning(f"RL agent failed: {e}. Using empty actions.")
+            rl_actions_dict = {}
+            rl_actions = {}
         
         # Combine recommendations
         recommendations = []
@@ -189,19 +248,33 @@ class RecommendationEngine:
                 "sections": sections,
                 "stations": stations,
             }
-            explanation_data = self.explainer.explain_decision(explain_state, combined_rec)
+            try:
+                if self.explainer:
+                    explanation_data = self.explainer.explain_decision(explain_state, combined_rec)
+                else:
+                    explanation_data = {"text": "AI recommendation based on current traffic conditions", "feature_importances": {}}
+            except Exception as e:
+                logger.warning(f"Explainer failed: {e}. Using default explanation.")
+                explanation_data = {"text": "AI recommendation based on current traffic conditions", "feature_importances": {}}
             
             # Calculate confidence
             confidence = self._calculate_confidence(or_rec, rl_rec, gnn_risk)
             
             # Build speed adjustments from RL actions
             speed_adjust = {}
-            for train_id in conflict.get("trains", []):
-                speed_mult = rl_actions_dict.get("regulate_speed", {}).get(train_id, 1.0)
-                train_obj = trains.get(train_id)
-                if train_obj:
-                    base_speed = getattr(train_obj, 'speed_kmph', 60.0)
-                    speed_adjust[train_id] = float(base_speed * speed_mult)
+            try:
+                for train_id in conflict.get("trains", []):
+                    speed_mult = rl_actions_dict.get("regulate_speed", {}).get(train_id, 1.0) if rl_actions_dict else 1.0
+                    train_obj = trains.get(train_id)
+                    if train_obj:
+                        if isinstance(train_obj, dict):
+                            base_speed = train_obj.get('max_speed_kmph', train_obj.get('max_speed', 60.0))
+                        else:
+                            base_speed = getattr(train_obj, 'speed_kmph', getattr(train_obj, 'max_speed_kmph', 60.0))
+                        speed_adjust[train_id] = float(base_speed * speed_mult)
+            except Exception as e:
+                logger.warning(f"Speed adjustment calculation failed: {e}")
+                speed_adjust = {}
             
             recommendation = {
                 "conflict_id": conflict_id,

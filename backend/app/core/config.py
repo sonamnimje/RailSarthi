@@ -2,8 +2,8 @@ import os
 import logging
 from dotenv import load_dotenv
 
-
-load_dotenv()
+# Reload .env file to pick up changes
+load_dotenv(override=True)  # override=True ensures new values replace old ones
 
 logger = logging.getLogger(__name__)
 

@@ -7,7 +7,7 @@ import { useZoneFilter } from '../lib/ZoneFilterContext'
 export default function Layout() {
 	const navigate = useNavigate()
 	const location = useLocation()
-	const bgClass = 'bg-white'
+	const bgClass = 'bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50'
 	const [isMenuOpen, setIsMenuOpen] = useState(false)
 	const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
 	const { selectedZone, divisionMeta, resetScope } = useZoneFilter()
@@ -20,6 +20,7 @@ export default function Layout() {
 	const navItems = [
 		{ to: '/app/dashboard', label: 'Dashboard' },
 		{ to: '/app/logs', label: 'Logs' },
+		{ to: '/digital-twin-simulation', label: 'Digital Twin' },
 		{ to: '/app/overrides', label: 'Overrides' },
 		{ to: '/app/reports', label: 'Reports' },
 		{ to: '/app/settings', label: 'Settings' },

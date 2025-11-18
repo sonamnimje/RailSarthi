@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchKpis, fetchDelayTrends, fetchThroughput } from '../lib/api'
 import { useZoneFilter } from '../lib/ZoneFilterContext'
+import { useRealTimeData } from '../lib/RealTimeDataContext'
 import { INDIAN_RAILWAY_ZONES, ZONE_TO_DIVISIONS, makeDivisionKey, type ZoneDisplayName } from '../lib/zoneData'
 import { 
 	Train, 
@@ -16,8 +17,7 @@ import {
 	BarChart3,
 	LineChart as LineChartIcon,
 	Search,
-	X,
-	Info
+	X
 } from 'lucide-react'
 
 type BarDatum = { label: string; value: number }
@@ -265,128 +265,6 @@ function BarChart({ data, max, legendLabel = 'value', color = '#3b82f6', tooltip
 	)
 }
 
-// Smart Train Prioritization Component
-type PrioritizationSuggestion = {
-	id: string
-	action: string
-	impact: string
-	reason?: string
-}
-
-function SmartTrainPrioritization() {
-	const [expandedId, setExpandedId] = useState<string | null>(null)
-	const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set())
-
-	const suggestions: PrioritizationSuggestion[] = [
-		{
-			id: '1',
-			action: 'give_precedence: Express 2215 before Passenger 1432',
-			impact: 'saves ~45 mins cumulative delay, throughput +3%, fuel -2%',
-			reason: 'Express 2215 has higher passenger load and priority status. Giving precedence reduces overall network delay and improves fuel efficiency by avoiding unnecessary stops.'
-		},
-		{
-			id: '2',
-			action: 'hold_train: Freight F902 for 6 mins at Bina Jn.',
-			impact: 'ensures on-time arrival of Shatabdi 12002, prevents platform conflict',
-			reason: 'Shatabdi 12002 is a high-priority passenger train arriving at the same platform. Brief hold of freight train prevents platform conflict and ensures passenger service punctuality.'
-		},
-		{
-			id: '3',
-			action: 'reroute: Passenger 1735 → Platform 3 at Itarsi',
-			impact: 'avoids clash with Express 2299 arriving in 5 mins',
-			reason: 'Express 2299 is scheduled to arrive at Platform 2 where Passenger 1735 is currently routed. Rerouting to Platform 3 prevents scheduling conflict and maintains service flow.'
-		},
-		{
-			id: '4',
-			action: 'regulate_speed: Passenger 1207 → 50 km/h for next 12 km',
-			impact: 'prevents bunching with Intercity 1311, saves ~8 mins downstream',
-			reason: 'Speed regulation prevents train bunching with Intercity 1311 on the same section. This optimization reduces downstream delays and improves overall section throughput.'
-		},
-		{
-			id: '5',
-			action: 'emergency_priority: Medical Relief Train MRT-07',
-			impact: 'clear single-line section immediately, emergency handling',
-			reason: 'Medical Relief Train MRT-07 requires immediate priority clearance for emergency medical transport. All other trains must yield to ensure timely delivery of critical supplies.'
-		}
-	]
-
-	const visibleSuggestions = suggestions.filter(s => !dismissedIds.has(s.id))
-
-	const handleAccept = (suggestion: PrioritizationSuggestion) => {
-		// TODO: Implement accept logic - send to API
-		console.log('Accepted:', suggestion)
-		setDismissedIds(prev => new Set([...prev, suggestion.id]))
-	}
-
-	const handleOverride = (suggestion: PrioritizationSuggestion) => {
-		// TODO: Implement override logic - send to API
-		console.log('Overridden:', suggestion)
-		setDismissedIds(prev => new Set([...prev, suggestion.id]))
-	}
-
-	const handleWhy = (id: string) => {
-		setExpandedId(expandedId === id ? null : id)
-	}
-
-	if (visibleSuggestions.length === 0) {
-		return (
-			<div className="text-center py-8 text-gray-500 text-sm">
-				No prioritization suggestions at this time.
-			</div>
-		)
-	}
-
-	return (
-		<div className="space-y-4">
-			{visibleSuggestions.map((suggestion) => (
-				<div
-					key={suggestion.id}
-					className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
-				>
-					<div className="flex items-start justify-between gap-4">
-						<div className="flex-1 min-w-0">
-							<div className="font-semibold text-gray-900 mb-1 text-sm">
-								{suggestion.action}
-							</div>
-							<div className="text-sm text-gray-600">
-								{suggestion.impact}
-							</div>
-							{expandedId === suggestion.id && suggestion.reason && (
-								<div className="mt-3 p-3 bg-gray-50 rounded-lg text-sm text-gray-700">
-									<div className="flex items-start gap-2">
-										<Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-										<span>{suggestion.reason}</span>
-									</div>
-								</div>
-							)}
-						</div>
-						<div className="flex items-center gap-2 flex-shrink-0">
-							<button
-								onClick={() => handleWhy(suggestion.id)}
-								className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded transition-colors"
-							>
-								Why?
-							</button>
-							<button
-								onClick={() => handleAccept(suggestion)}
-								className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
-							>
-								Accept
-							</button>
-							<button
-								onClick={() => handleOverride(suggestion)}
-								className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
-							>
-								Override
-							</button>
-						</div>
-					</div>
-				</div>
-			))}
-		</div>
-	)
-}
-
 export default function DashboardPage() {
 	const [kpis, setKpis] = useState<{ throughput_per_hour: number; avg_delay_minutes: number; congestion_index: number; on_time_percentage: number } | null>(null)
 	const [delayTrends, setDelayTrends] = useState<{ labels: string[]; series: number[] } | null>(null)
@@ -397,6 +275,7 @@ export default function DashboardPage() {
 	const [searchEnabled, setSearchEnabled] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
 	const { selectedZone, selectedDivisionKey, setZone, setDivisionKey } = useZoneFilter()
+	const { kpis: realTimeKpis, lastUpdate: realTimeLastUpdate, isConnected, refreshData } = useRealTimeData()
 	const navigate = useNavigate()
 	const [hasSelectedZone, setHasSelectedZone] = useState(false)
 	const [hasSelectedDivision, setHasSelectedDivision] = useState(false)
@@ -569,7 +448,8 @@ export default function DashboardPage() {
 					on_time_percentage: 85
 				}))
 				if (cancelled) return
-				setKpis(kpisData)
+				// Use real-time KPIs if available, otherwise use fetched data
+				setKpis(realTimeKpis || kpisData)
 
 				// Fetch delay trends
 				const trendsData = await fetchDelayTrends(24).catch(() => ({
@@ -599,7 +479,8 @@ export default function DashboardPage() {
 					}))
 				)
 
-        setLastUpdated(Date.now())
+        // Use real-time last update if available
+        setLastUpdated(realTimeLastUpdate ? realTimeLastUpdate.getTime() : Date.now())
       } catch (e: any) {
 				if (!cancelled) setError(e?.message || 'Failed to load dashboard data')
       } finally {
@@ -609,7 +490,7 @@ export default function DashboardPage() {
     load()
 		const interval = setInterval(load, 60000) // Refresh every minute
     return () => { cancelled = true; clearInterval(interval) }
-  }, [])
+  }, [realTimeKpis, realTimeLastUpdate])
 
   const formattedLastUpdated = useMemo(() => new Date(lastUpdated).toLocaleTimeString(), [lastUpdated])
 
@@ -622,7 +503,7 @@ export default function DashboardPage() {
 	const networkPerformance = kpis?.on_time_percentage || 85
 
   return (
-		<div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+		<div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 p-4 sm:p-6 lg:p-8">
 			{/* Header */}
 			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
 				<div className="flex items-center gap-3">
@@ -635,13 +516,18 @@ export default function DashboardPage() {
         <div className="text-xs sm:text-sm text-gray-600">
 						{loading ? 'Refreshing…' : 'Last updated'} {formattedLastUpdated}
 					</div>
-					<button
-						onClick={() => window.location.reload()}
-						className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors"
-						aria-label="Refresh"
-					>
-						<RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-					</button>
+					<div className="flex items-center gap-2">
+						{isConnected && (
+							<div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Real-time connected" />
+						)}
+						<button
+							onClick={() => refreshData()}
+							className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors"
+							aria-label="Refresh"
+						>
+							<RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+						</button>
+					</div>
         </div>
       </div>
 
@@ -930,17 +816,8 @@ export default function DashboardPage() {
 				</div>
 			</div>
 
-			{/* Smart Train Prioritization and Predictive Insights */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-				{/* Smart Train Prioritization */}
-				<div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-					<div className="flex items-center justify-between mb-4">
-						<h2 className="text-xl font-semibold text-gray-900">Smart Train Prioritization</h2>
-						<Brain className="h-5 w-5 text-gray-400" />
-					</div>
-					<SmartTrainPrioritization />
-				</div>
-
+			{/* Predictive Insights */}
+			<div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
 				{/* Predictive Insights */}
 				<div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
 					<div className="flex items-center justify-between mb-4">

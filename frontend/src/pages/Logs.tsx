@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchLiveTrains as fetchLiveTrainsApi, type LiveTrain } from '../lib/api'
 import { useZoneFilter, ensureDivisionOrDefault } from '../lib/ZoneFilterContext'
+import { useRealTimeData } from '../lib/RealTimeDataContext'
 
 export default function LogsPage() {
+  const { trains: realTimeTrains, isConnected, refreshData } = useRealTimeData()
   const [trains, setTrains] = useState<LiveTrain[]>([])
   const [station, setStation] = useState<string>('')
   const [hours, setHours] = useState<number | undefined>(undefined)
@@ -68,6 +70,13 @@ export default function LogsPage() {
     fetchLiveTrainsFor()
   }, [fetchLiveTrainsFor])
 
+  // Sync with real-time data when available
+  useEffect(() => {
+    if (realTimeTrains && realTimeTrains.length > 0 && !station) {
+      setTrains(realTimeTrains)
+    }
+  }, [realTimeTrains, station])
+
   useEffect(() => {
     if (!selectedZone) {
       setIsZoneScoped(false)
@@ -86,7 +95,7 @@ export default function LogsPage() {
   }, [selectedZone, selectedDivisionKey, stationCode, station, setDivisionKey])
 
   return (
-    <div className="p-6 bg-blue-50 min-h-screen">
+    <div className="p-6 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 min-h-screen">
       <h2 className="text-3xl font-bold mb-6 text-gray-800">🚉 Live Train Logs</h2>
       {selectedZone && (
         <div className="mb-4 rounded-lg bg-blue-100 border border-blue-200 text-blue-900 text-sm px-4 py-3">

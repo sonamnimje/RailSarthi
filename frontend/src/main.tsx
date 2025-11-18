@@ -17,9 +17,12 @@ import HomePage from './pages/Home';
 import DashboardPage from './pages/Dashboard';
 import NotificationsPage from './pages/Notifications';
 import UnauthorizedPage from './pages/Unauthorized';
+import DigitalTwinSimulation from './pages/DigitalTwinSimulation';
 
 import { Navigate } from 'react-router-dom';
 import { ZoneFilterProvider } from './lib/ZoneFilterContext';
+import { RealTimeDataProvider } from './lib/RealTimeDataContext';
+import { OverrideProvider } from './lib/OverrideContext';
 
 const root = createRoot(document.getElementById('root')!)
 
@@ -27,7 +30,9 @@ const root = createRoot(document.getElementById('root')!)
 root.render(
 	<React.StrictMode>
 		<ZoneFilterProvider>
-			<BrowserRouter>
+			<RealTimeDataProvider>
+				<OverrideProvider>
+					<BrowserRouter>
 				<Routes>
 					<Route path="/login" element={<LoginPage onSuccess={() => location.replace('/app/dashboard')} />} />
 					<Route path="/signup" element={<SignupPage onSuccess={() => location.replace('/app/dashboard')} />} />
@@ -42,6 +47,7 @@ root.render(
 						<Route path="/app/overrides" element={<OverridesPage />} />
 						<Route path="/app/reports" element={<ReportsPage />} />
 						<Route path="/app/notifications" element={<NotificationsPage />} />
+						<Route path="/digital-twin-simulation" element={<DigitalTwinSimulation />} />
 						<Route
 							path="/app/settings"
 							element={
@@ -55,6 +61,8 @@ root.render(
 					<Route path="*" element={<Navigate to="/" replace />} />
 				</Routes>
 			</BrowserRouter>
+				</OverrideProvider>
+			</RealTimeDataProvider>
 		</ZoneFilterProvider>
 	</React.StrictMode>
 )

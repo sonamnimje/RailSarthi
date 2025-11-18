@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError, OperationalError, DisconnectionError
+from fastapi import HTTPException
 import logging
 import os
 from contextlib import contextmanager
@@ -99,6 +100,12 @@ def get_db_session():
 			# Re-raise the original exception with additional context
 			raise
 		yield db
+	except HTTPException:
+		# Don't log HTTPExceptions (like 401) as errors - they're expected responses
+		# Just re-raise so FastAPI can handle them properly
+		if db:
+			db.rollback()
+		raise
 	except SQLAlchemyError as e:
 		logger.error(f"Database session error: {str(e)}", exc_info=True)
 		if db:
@@ -148,6 +155,12 @@ def get_db():
 			# Re-raise the original exception with additional context
 			raise
 		yield db
+	except HTTPException:
+		# Don't log HTTPExceptions (like 401) as errors - they're expected responses
+		# Just re-raise so FastAPI can handle them properly
+		if db:
+			db.rollback()
+		raise
 	except SQLAlchemyError as e:
 		logger.error(f"Database session error: {str(e)}", exc_info=True)
 		if db:

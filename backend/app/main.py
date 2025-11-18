@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .api.routes import ingest, optimizer, simulator, overrides, ws, users, reports, train_logs, train_live, weather, train_realtime, ai_routes
 from .api.routes import live_routes, weather_routes
-from .api.routes import recommendations
+from .api.routes import recommendations, digital_twin
 from .db.session import engine, SessionLocal, test_connection
 from .db.models import Base
 from .db import models_sim  # Import to register OverrideLog model
@@ -72,6 +72,8 @@ def create_app() -> FastAPI:
 	app.include_router(weather_routes.router)  # exposes /api/weather/* endpoints
 	# Recommendations API
 	app.include_router(recommendations.router, prefix="/api/recommendations", tags=["recommendations"])
+	# Digital Twin API
+	app.include_router(digital_twin.router, prefix="/api/digital-twin", tags=["digital-twin"])
 
 
 	# Ensure database tables exist on startup
@@ -153,7 +155,15 @@ def create_app() -> FastAPI:
 
 	@app.on_event("shutdown")
 	async def on_shutdown() -> None:
-		pass
+		"""Cleanup resources on application shutdown"""
+		try:
+			from .services.rapidapi_client import get_rapidapi_client_if_exists
+			client = get_rapidapi_client_if_exists()
+			if client is not None:
+				await client.close()
+				logger.info("RapidAPIClient closed successfully")
+		except Exception as e:
+			logger.warning(f"Error closing RapidAPIClient during shutdown: {e}")
 
 	@app.get("/health")
 	def health() -> dict:

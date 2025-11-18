@@ -1,21 +1,37 @@
 import { useEffect, useState } from 'react'
-import { fetchOverrides } from '../lib/api'
+import { useNavigate, Link } from 'react-router-dom'
+import { useOverrides } from '../lib/OverrideContext'
+import { Train, RefreshCw } from 'lucide-react'
 
 export default function OverridesPage() {
-	const [rows, setRows] = useState<Array<{ id: string; controller_id: string; train_id: string; action: string; ai_action?: string; reason?: string; timestamp: number }>>([])
+	const navigate = useNavigate()
+	const { overrides, refreshOverrides, isLoading } = useOverrides()
 	const [error, setError] = useState<string | null>(null)
+	const [lastOverrideCount, setLastOverrideCount] = useState(0)
 
+	// Refresh overrides when component mounts
 	useEffect(() => {
-		fetchOverrides()
-			.then(setRows)
-			.catch((e) => {
-				if (e.message === 'Unauthorized') {
-					location.href = '/login'
-					return
-				}
-				setError(e.message)
-			})
-	}, [])
+		refreshOverrides().catch((e) => {
+			if (e.message === 'Unauthorized') {
+				navigate('/login')
+				return
+			}
+			setError(e.message)
+		})
+	}, [navigate, refreshOverrides])
+
+	// Track new overrides for notification
+	useEffect(() => {
+		if (overrides.length > lastOverrideCount && lastOverrideCount > 0) {
+			// New override added - could show a toast notification here
+			const newCount = overrides.length - lastOverrideCount
+			console.log(`New override(s) detected: ${newCount}`)
+		}
+		setLastOverrideCount(overrides.length)
+	}, [overrides.length, lastOverrideCount])
+
+	// Use overrides from context
+	const rows = overrides
 
 	const getOutcomeColor = (action: string) => {
 		switch (action.toLowerCase()) {
@@ -67,14 +83,39 @@ export default function OverridesPage() {
 	const metrics = getAIMetrics()
 
 	return (
-		<div className="p-6 bg-gray-50 min-h-screen">
+		<div className="p-6 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 min-h-screen">
 			<div className="mb-6">
-				<h2 className="text-4xl font-extrabold mb-2 text-gray-800">📜 Overrides & Audit Logs</h2>
+				<div className="flex items-center justify-between mb-2">
+					<h2 className="text-4xl font-extrabold text-gray-800">📜 Overrides & Audit Logs</h2>
+					<Link
+						to="/digital-twin-simulation"
+						className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+					>
+						<Train className="w-4 h-4" />
+						Go to Simulation
+					</Link>
+				</div>
 				<p className="text-gray-600 text-lg">
 					History of all controller overrides vs. AI decisions. Used as training feedback loop for adaptive AI learning.
+					Actions taken in the Digital Twin Simulation are automatically recorded here.
 				</p>
 			</div>
 			{error && <div className="text-red-400 mb-2">{error}</div>}
+			
+			{/* Refresh Button */}
+			<div className="mb-4 flex items-center justify-between">
+				<div className="text-sm text-gray-600">
+					{isLoading ? 'Loading overrides...' : `${rows.length} total override record(s)`}
+				</div>
+				<button
+					onClick={() => refreshOverrides()}
+					disabled={isLoading}
+					className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+				>
+					<RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+					{isLoading ? 'Refreshing...' : 'Refresh'}
+				</button>
+			</div>
 			
 			{/* AI Learning Metrics */}
 			<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -143,6 +184,7 @@ export default function OverridesPage() {
 							<tr>
 								<th className="text-left p-4 font-bold text-gray-900 border-r border-gray-300">Timestamp</th>
 								<th className="text-left p-4 font-bold text-gray-900 border-r border-gray-300">Controller ID</th>
+								<th className="text-left p-4 font-bold text-gray-900 border-r border-gray-300">Source</th>
 								<th className="text-left p-4 font-bold text-gray-900 border-r border-gray-300">AI Suggestion</th>
 								<th className="text-left p-4 font-bold text-gray-900 border-r border-gray-300">Controller Override</th>
 								<th className="text-left p-4 font-bold text-gray-900 border-r border-gray-300">Reason</th>
@@ -153,25 +195,37 @@ export default function OverridesPage() {
 							{rows.map((r, index) => {
 								const isOverride = r.action !== r.ai_action
 								const hasReason = r.reason && r.reason.trim() !== ''
+								const isFromSimulation = (r as any).source === 'simulation'
 								return (
 									<tr key={r.id} className={`bg-blue-50 border-b border-gray-100 ${isOverride ? 'bg-orange-50' : 'bg-green-50'}`}>
 										<td className="p-4 border-r border-gray-200 font-mono text-xs">{formatTimestamp(r.timestamp)}</td>
 										<td className="p-4 border-r border-gray-200">
 											<div className="text-xs text-gray-700">
 												<div className="font-semibold">{r.controller_id}</div>
-												<div>{r.train_id || '-'}</div>
+												<div className="text-gray-500">{r.train_id || '-'}</div>
 											</div>
+										</td>
+										<td className="p-4 border-r border-gray-200">
+											{isFromSimulation ? (
+												<span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full font-medium" title="From Digital Twin Simulation">
+													🎮 Simulation
+												</span>
+											) : (
+												<span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full font-medium" title="From API/System">
+													📡 API
+												</span>
+											)}
 										</td>
 										<td className="p-4 border-r border-gray-200">
 											<div className="flex items-center gap-2">
 												<span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">AI</span>
-												<span>{r.ai_action || '-'}</span>
+												<span className="text-sm">{r.ai_action || '-'}</span>
 											</div>
 										</td>
 										<td className="p-4 border-r border-gray-200">
 											<div className="flex items-center gap-2">
 												<span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Controller</span>
-												<span>{r.action}</span>
+												<span className="text-sm font-medium">{r.action}</span>
 											</div>
 										</td>
 										<td className="p-4 border-r border-gray-200">
@@ -204,8 +258,8 @@ export default function OverridesPage() {
 							})}
 							{rows.length === 0 && (
 								<tr>
-									<td colSpan={6} className="p-8 text-center text-gray-500">
-										No overrides found
+									<td colSpan={7} className="p-8 text-center text-gray-500">
+										No overrides found. Actions taken in the Digital Twin Simulation will appear here.
 									</td>
 								</tr>
 							)}

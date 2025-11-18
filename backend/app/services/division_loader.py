@@ -27,6 +27,10 @@ SOLAPUR_DIR = DATA_DIR / "solapur"
 # Valid divisions
 VALID_DIVISIONS = ["mumbai", "pune", "bhusaval", "nagpur", "solapur"]
 
+# Global cache for division datasets (loaded once on startup)
+_division_cache: Dict[str, Dict[str, Any]] = {}
+_cache_lock = None  # Will be initialized if threading is needed
+
 # Required files when strict loading is desired (we use robust approach so treat as recommendations)
 RECOMMENDED_FILES = [
     "stations.csv",
@@ -103,9 +107,11 @@ def _filter_by_division(df: pd.DataFrame, division: str, division_col: str = "di
     return df[df[div_col].astype(str).str.lower().str.strip() == division]
 
 
-def load_division_dataset(division: str) -> Dict[str, Any]:
+def load_division_dataset(division: str, use_cache: bool = True) -> Dict[str, Any]:
     """
     Load division-specific dataset with robust normalization.
+    
+    Uses in-memory cache to avoid reloading data on every request.
 
     Returns a dict with keys:
       division, stations, sections, trains, speed_restrictions,
@@ -115,6 +121,11 @@ def load_division_dataset(division: str) -> Dict[str, Any]:
     Non-critical missing optional files are logged and returned as empty DataFrames.
     """
     division = division.lower().strip()
+    
+    # Check cache first
+    if use_cache and division in _division_cache:
+        logger.debug(f"Returning cached dataset for division: {division}")
+        return _division_cache[division]
     # Normalize division name (handle bhusawal -> bhusaval)
     if division == "bhusawal":
         division = "bhusaval"
@@ -425,6 +436,11 @@ def load_division_dataset(division: str) -> Dict[str, Any]:
                 bad_trains.append((train_id, f"unknown_stations:{unknown_stations}"))
     if bad_trains:
         raise ValueError(f"trains.csv contains invalid routes for division {division}: {bad_trains}")
+
+    # Cache the result
+    if use_cache:
+        _division_cache[division] = result
+        logger.info(f"Cached dataset for division: {division}")
 
     return result
 
