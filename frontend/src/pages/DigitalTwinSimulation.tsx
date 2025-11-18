@@ -11,7 +11,7 @@ import {
 	Brain,
 	Clock,
 	TrendingUp,
-	BarChart3,
+
 	Train,
 	AlertCircle,
 	CheckCircle2,
@@ -1117,14 +1117,7 @@ export default function DigitalTwinSimulation() {
 						Digital Twin & Simulation System
 					</h1>
 					<div className="flex items-center gap-2">
-						<Link
-							to="/app/overrides"
-							className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-						>
-							<BarChart3 className="w-4 h-4" />
-							<span className="hidden md:inline">View Overrides</span>
-							<span className="md:hidden">Overrides</span>
-						</Link>
+						{/* Overrides view removed per request */}
 						<button
 							onClick={handleRefresh}
 							disabled={loading}
@@ -1201,13 +1194,24 @@ export default function DigitalTwinSimulation() {
 						</div>
 					</div>
 					<div className="p-0 relative" style={{ minHeight: '600px', height: '600px' }}>
-						<IndiaRailwayMap
-							selectedTrain={selectedTrain}
-							onTrainClick={(trainNo) => {
+						{selectedStation ? (
+							<RailwaySchematicMap
+								division={getDivisionFromStation(selectedStation)}
+								selectedTrain={selectedTrain}
+								onTrainClick={(trainNo) => {
 								setSelectedTrain(trainNo);
 								setShowTrainModal(true);
-							}}
-						/>
+								}}
+							/>
+						) : (
+							<IndiaRailwayMap
+								selectedTrain={selectedTrain}
+								onTrainClick={(trainNo) => {
+								setSelectedTrain(trainNo);
+								setShowTrainModal(true);
+								}}
+							/>
+						)}
 					</div>
 
 					{/* KPIs Grid - Below Map */}
