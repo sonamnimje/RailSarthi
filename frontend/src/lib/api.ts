@@ -120,6 +120,9 @@ const apiBaseUrl = API_BASE
           : 'https://railanukriti.onrender.com')
       : 'https://railanukriti.onrender.com')
 
+// Export for components that need base URL
+export { apiBaseUrl }
+
 export async function fetchRecommendations(req: OptimizeRequest) {
 	const res = await fetch(`${apiBaseUrl}/api/optimizer/optimize`, {
 		method: 'POST',
@@ -824,13 +827,74 @@ export type DigitalTwinPosition = {
 		progress: number; // 0.0 to 1.0, how far along the section
 	};
 	speed?: number;
-	status?: 'RUNNING' | 'STOPPED' | 'DELAYED';
+	status?: 'RUNNING' | 'STOPPED' | 'DELAYED' | 'REROUTED' | 'BLOCKED' | 'RESTRICTED' | 'QUEUED';
 	delay?: number;
+	rerouted?: boolean;
+	alternativeRoute?: string[];
+	originalSection?: string;
+};
+
+export type DisruptionImpactMetrics = {
+	affected_trains: number;
+	total_trains: number;
+	trains_in_queue: number;
+	trains_rerouted: number;
+	total_passenger_delay_minutes: number;
+	total_freight_delay_minutes: number;
+	avg_passenger_delay_minutes: number;
+	avg_freight_delay_minutes: number;
+	throughput_impact_percent: number;
+	active_disruptions: number;
+};
+
+export type ComprehensiveKPIs = {
+	train_performance: {
+		on_time_performance_percent: number;
+		avg_delay_passenger_minutes: number;
+		avg_delay_freight_minutes: number;
+		max_delay_minutes: number;
+		total_delay_per_station: Record<string, number>;
+		schedule_adherence_percent: number;
+	};
+	speed_travel: {
+		avg_speed_passenger_kmph: number;
+		avg_speed_freight_kmph: number;
+		speed_variance_passenger: number;
+		speed_variance_freight: number;
+		section_travel_times: Record<string, number>;
+		halt_time_analysis: {
+			total_halt_minutes: number;
+			scheduled_halt_minutes: number;
+			excess_halt_minutes: number;
+		};
+	};
+	disruption_impact: {
+		delay_per_disruption_type: Record<string, number>;
+		affected_distance_km: number;
+		affected_time_minutes: number;
+		recovery_time_minutes: number;
+		trains_affected_count: number;
+		disruption_severity_score: number;
+	};
+	operational_efficiency: {
+		passenger_freight_delay_ratio: number;
+		train_density_per_hour: number;
+		section_capacity_utilization_percent: number;
+		cumulative_delay_trend: number[];
+	};
+	simulation_predictive: {
+		prediction_accuracy_percent: number;
+		predicted_vs_actual_delay_error: number;
+		scenario_impact_score: number;
+		line_congestion_index: number;
+	};
 };
 
 export type DigitalTwinPositionsResponse = {
 	timestamp: string;
 	trains: DigitalTwinPosition[];
+	impact_metrics?: DisruptionImpactMetrics;
+	kpis?: ComprehensiveKPIs;
 };
 
 export async function fetchDigitalTwinMap(division: string): Promise<DigitalTwinMapData> {
@@ -847,6 +911,211 @@ export async function fetchDigitalTwinPositions(division: string): Promise<Digit
 	});
 	if (!res.ok) throw new Error('Failed to fetch digital twin positions');
 	return (await res.json()) as DigitalTwinPositionsResponse;
+}
+
+export type DigitalTwinDisruption = {
+	id: string;
+	type: string;
+	description: string;
+	sectionId?: string;
+	startStation?: string;
+	endStation?: string;
+	startTime: string;
+	durationSeconds: number;
+	severity: 'low' | 'medium' | 'high';
+	status: 'active' | 'resolved';
+	// Operational impact metrics (for signal failures)
+	speed_reduction_factor?: number;
+	block_clearance_time_min?: number;
+	normal_block_clearance_time_min?: number;
+	throughput_drop_percent?: number;
+	throughput_drop_factor?: number;
+	requires_ta912_authority?: boolean;
+	restricted_speed_kmph?: number;
+	passenger_delay_minutes?: number;
+	freight_delay_minutes?: number;
+	impact_score?: number;
+	operational_mode?: string;
+	description_detail?: string;
+	// Operational effects for freight and passenger trains
+	operational_effects?: {
+		freight?: {
+			action?: string;
+			speed_kmph?: number;
+			delay_minutes?: number;
+			reroute_to_alternate_loops?: boolean;
+			priority?: string;
+			wait_time_multiplier?: number;
+			stall_risk?: boolean;
+			[key: string]: any;
+		};
+		passenger?: {
+			action?: string;
+			speed_kmph?: number;
+			delay_minutes?: number;
+			reroute_enabled?: boolean;
+			crossings_reshuffled?: boolean;
+			delay_propagation_blocks?: number;
+			[key: string]: any;
+		};
+		map_visualization?: {
+			block_color?: string;
+			show_path_break?: boolean;
+			show_rerouted_path?: boolean;
+			highlight_alternate_routes?: boolean;
+			[key: string]: any;
+		};
+		[key: string]: any;
+	};
+};
+
+export type DigitalTwinDisruptionsResponse = {
+	timestamp: string;
+	disruptions: DigitalTwinDisruption[];
+};
+
+export async function fetchDigitalTwinDisruptions(division: string): Promise<DigitalTwinDisruptionsResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/digital-twin/${encodeURIComponent(division)}/disruptions`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	});
+	if (!res.ok) throw new Error('Failed to fetch digital twin disruptions');
+	return (await res.json()) as DigitalTwinDisruptionsResponse;
+}
+
+export type DecisionExplanation = {
+	algorithm: string;
+	reasoning: string[];
+	tradeoffs: string[];
+	priorityCalculation: {
+		passengerScore?: number;
+		freightScore?: number;
+		emergencyScore?: number;
+		factors: string[];
+	};
+	alternativesConsidered: Array<{
+		option: string;
+		impact: string;
+		rejected: string;
+	}>;
+	expectedOutcome: string;
+};
+
+export type WhatIfScenario = {
+	id: string;
+	name: string;
+	description: string;
+	type: string;
+	severity: 'low' | 'medium' | 'high' | 'critical';
+	disruptions: Array<{
+		type: string;
+		sectionId?: string;
+		startStation?: string;
+		endStation?: string;
+		durationMinutes: number;
+		severity: string;
+		speedReductionFactor?: number;
+		requiresTA912?: boolean;
+		completeBlock?: boolean;
+		tsrSpeed?: number;
+		startDelay?: number;
+		description?: string;
+	}>;
+	trains: {
+		passenger: number;
+		freight: number;
+		emergency?: number;
+	};
+	timeWindow: string;
+	expectedImpact: {
+		passengerDelay: number;
+		freightDelay: number;
+		throughputDrop: number;
+		affectedTrains: number;
+	};
+	prioritizationRules: string[];
+	decisionExplanation?: DecisionExplanation;
+	specialTrain?: {
+		trainNo: string;
+		trainName: string;
+		priority: string;
+		route: string;
+	};
+};
+
+export type ScenariosResponse = {
+	scenarios: WhatIfScenario[];
+	metadata: {
+		division: string;
+		route?: string;
+		totalStations?: number;
+		totalSections?: number;
+		createdAt?: string;
+		version?: string;
+	};
+};
+
+export async function fetchDigitalTwinScenarios(division: string): Promise<ScenariosResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/digital-twin/${encodeURIComponent(division)}/scenarios`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	});
+	if (!res.ok) throw new Error('Failed to fetch scenarios');
+	return (await res.json()) as ScenariosResponse;
+}
+
+export type ApplyScenarioResponse = {
+	success: boolean;
+	scenario: WhatIfScenario;
+	applied_disruptions: DigitalTwinDisruption[];
+	message: string;
+	timestamp: string;
+};
+
+export async function applyScenario(division: string, scenarioId: string): Promise<ApplyScenarioResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/digital-twin/${encodeURIComponent(division)}/scenarios/${encodeURIComponent(scenarioId)}/apply`, {
+		method: 'POST',
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	});
+	if (!res.ok) throw new Error('Failed to apply scenario');
+	return (await res.json()) as ApplyScenarioResponse;
+}
+
+export type DisruptionImpact = {
+	passenger_delay_minutes: number;
+	freight_delay_minutes: number;
+	throughput_drop_percent: number;
+	speed_reduction_factor: number;
+	complete_block?: boolean;
+	requires_ta912?: boolean;
+	recovery_time_minutes?: number;
+	tsr_speed_kmph?: number;
+};
+
+export type DisruptionCatalogItem = {
+	name: string;
+	type: string;
+	severity: string;
+	category: string;
+	impact?: DisruptionImpact;
+};
+
+export type DisruptionCatalogCategory = {
+	category: string;
+	disruptions: DisruptionCatalogItem[];
+	count: number;
+};
+
+export type DisruptionCatalogResponse = {
+	categories: DisruptionCatalogCategory[];
+	total_types: number;
+	total_categories: number;
+};
+
+export async function fetchDisruptionCatalog(): Promise<DisruptionCatalogResponse> {
+	const res = await fetch(`${apiBaseUrl}/api/digital-twin/disruption-catalog`, {
+		headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+	});
+	if (!res.ok) throw new Error('Failed to fetch disruption catalog');
+	return (await res.json()) as DisruptionCatalogResponse;
 }
 
 // India Railway Map API functions

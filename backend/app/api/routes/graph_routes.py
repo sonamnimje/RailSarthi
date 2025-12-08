@@ -162,6 +162,174 @@ def get_jbp_itarsi_schedule() -> Dict[str, Any]:
 	return {"stations": stations, "trains": trains, "meta": meta}
 
 
+@router.get("/time-distance/itarsi-bhopal")
+def get_itarsi_bhopal_schedule() -> Dict[str, Any]:
+	"""
+	Return Itarsi→Bhopal timetable with 10 passenger and 20 freight trains.
+	Generates sample schedule data for visualization.
+	"""
+	from datetime import datetime, timedelta
+	import random
+	
+	# Stations from Itarsi to Bhopal
+	stations_data = [
+		{"station_name": "Itarsi Jn", "km_position": 0},
+		{"station_name": "Narmadapuram", "km_position": 18},
+		{"station_name": "Obaidullaganj", "km_position": 45},
+		{"station_name": "Mandideep", "km_position": 65},
+		{"station_name": "Misrod", "km_position": 78},
+		{"station_name": "Rani Kamalapati", "km_position": 90},
+		{"station_name": "Bhopal Jn", "km_position": 96},
+	]
+	
+	stations = stations_data.copy()
+	
+	# Generate trains
+	trains: List[Dict[str, Any]] = []
+	
+	# Passenger train names
+	passenger_names = [
+		"Bhopal Express", "Itarsi Passenger", "Narmada Express", "Bhopal Superfast",
+		"Itarsi Fast", "Bhopal Mail", "Narmada Passenger", "Bhopal Local",
+		"Itarsi Express", "Bhopal Special"
+	]
+	
+	# Freight train names
+	freight_names = [
+		"Goods Train", "Freight Express", "Cargo Train", "Goods Special",
+		"Freight Loader", "Cargo Express", "Goods Carrier", "Freight Runner",
+		"Cargo Loader", "Goods Runner", "Freight Carrier", "Cargo Carrier",
+		"Goods Express", "Freight Loader", "Cargo Runner", "Goods Loader",
+		"Freight Express", "Cargo Special", "Goods Carrier", "Freight Special"
+	]
+	
+	base_time = datetime(2024, 1, 1, 6, 0)  # Start at 6 AM
+	
+	# Generate 10 passenger trains
+	for i in range(10):
+		train_id = f"P{12900 + i}"
+		departure_time = base_time + timedelta(minutes=i * 45)  # Every 45 minutes
+		
+		stops = []
+		current_time = departure_time
+		for j, station in enumerate(stations_data):
+			km = station["km_position"]
+			if j == 0:
+				# Departure from Itarsi
+				stops.append({
+					"station_name": station["station_name"],
+					"km_position": km,
+					"scheduled_arrival": current_time.strftime("%H:%M"),
+					"scheduled_departure": current_time.strftime("%H:%M"),
+					"halt_minutes": 2 if j < len(stations_data) - 1 else 0
+				})
+			elif j == len(stations_data) - 1:
+				# Arrival at Bhopal
+				# Calculate travel time (passenger trains: ~1.5 hours for 96 km)
+				travel_time_min = int((km / 96) * 90)  # ~90 minutes for full route
+				current_time = departure_time + timedelta(minutes=travel_time_min)
+				stops.append({
+					"station_name": station["station_name"],
+					"km_position": km,
+					"scheduled_arrival": current_time.strftime("%H:%M"),
+					"scheduled_departure": current_time.strftime("%H:%M"),
+					"halt_minutes": 0
+				})
+			else:
+				# Intermediate stations - calculate based on distance ratio
+				travel_time_min = int((km / 96) * 90)  # ~90 minutes for full route
+				arrival_time = departure_time + timedelta(minutes=travel_time_min)
+				halt = random.randint(2, 5)
+				departure_time_station = arrival_time + timedelta(minutes=halt)
+				stops.append({
+					"station_name": station["station_name"],
+					"km_position": km,
+					"scheduled_arrival": arrival_time.strftime("%H:%M"),
+					"scheduled_departure": departure_time_station.strftime("%H:%M"),
+					"halt_minutes": halt
+				})
+				current_time = departure_time_station
+		
+		trains.append({
+			"train_id": train_id,
+			"train_name": passenger_names[i],
+			"train_type": "PASSENGER",
+			"stops": stops
+		})
+	
+	# Generate 20 freight trains
+	for i in range(20):
+		train_id = f"F{80000 + i}"
+		departure_time = base_time + timedelta(minutes=i * 30)  # Every 30 minutes
+		
+		stops = []
+		for j, station in enumerate(stations_data):
+			km = station["km_position"]
+			if j == 0:
+				stops.append({
+					"station_name": station["station_name"],
+					"km_position": km,
+					"scheduled_arrival": departure_time.strftime("%H:%M"),
+					"scheduled_departure": departure_time.strftime("%H:%M"),
+					"halt_minutes": 5 if j < len(stations_data) - 1 else 0
+				})
+			elif j == len(stations_data) - 1:
+				# Freight trains: ~2 hours for 96 km
+				travel_time_min = int((km / 96) * 120)
+				arrival_time = departure_time + timedelta(minutes=travel_time_min)
+				stops.append({
+					"station_name": station["station_name"],
+					"km_position": km,
+					"scheduled_arrival": arrival_time.strftime("%H:%M"),
+					"scheduled_departure": arrival_time.strftime("%H:%M"),
+					"halt_minutes": 0
+				})
+			else:
+				# Intermediate stations for freight - calculate based on distance ratio
+				travel_time_min = int((km / 96) * 120)  # ~120 minutes for full route
+				arrival_time = departure_time + timedelta(minutes=travel_time_min)
+				halt = random.randint(5, 10)
+				departure_time_station = arrival_time + timedelta(minutes=halt)
+				stops.append({
+					"station_name": station["station_name"],
+					"km_position": km,
+					"scheduled_arrival": arrival_time.strftime("%H:%M"),
+					"scheduled_departure": departure_time_station.strftime("%H:%M"),
+					"halt_minutes": halt
+				})
+		
+		trains.append({
+			"train_id": train_id,
+			"train_name": freight_names[i],
+			"train_type": "FREIGHT",
+			"stops": stops
+		})
+	
+	# Add arrival_min and departure_min to stops for compatibility
+	for train in trains:
+		for stop in train["stops"]:
+			stop["arrival_min"] = _time_to_minutes(stop["scheduled_arrival"])
+			stop["departure_min"] = _time_to_minutes(stop["scheduled_departure"])
+	
+	# Calculate meta
+	all_arrivals = []
+	all_departures = []
+	for train in trains:
+		for stop in train["stops"]:
+			all_arrivals.append(stop["arrival_min"])
+			all_departures.append(stop["departure_min"])
+	
+	meta = {
+		"earliest_departure_min": min(all_departures) if all_departures else 0,
+		"latest_arrival_min": max(all_arrivals) if all_arrivals else 1440,
+		"station_count": len(stations),
+		"train_count": len(trains),
+		"source_file": "generated_itarsi_bhopal"
+	}
+	
+	return {"stations": stations, "trains": trains, "meta": meta}
+
+
 @router.get("/kpis")
 async def get_kpis() -> dict:
 	"""Return current KPIs."""

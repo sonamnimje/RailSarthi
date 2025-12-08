@@ -1,0 +1,886 @@
+{
+  "disruption_impacts": {
+    "Infrastructure-Related Disruptions": {
+      "Track blockage (broken rail, weld failure)": {
+        "type": "track_block",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 45,
+          "freight": 60
+        },
+        "throughput_drop_percent": 60,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 120,
+        "operational_effects": {
+          "freight": {
+            "action": "immediate_hold_nearest_loop",
+            "reroute_to_alternate_loops": true,
+            "speed_drop_kmph": 0,
+            "priority": "lowest",
+            "wait_time_multiplier": 2.0,
+            "stall_risk": true
+          },
+          "passenger": {
+            "action": "reverse_route_or_wrong_line_shunting",
+            "reroute_enabled": true,
+            "crossings_reshuffled": true,
+            "delay_propagation_blocks": 3
+          },
+          "map_visualization": {
+            "block_color": "RED",
+            "show_path_break": true,
+            "show_rerouted_path": true,
+            "highlight_alternate_routes": true
+          }
+        }
+      },
+      "Track maintenance / engineering work": {
+        "type": "track_block",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 20,
+          "freight": 40
+        },
+        "throughput_drop_percent": 40,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 90,
+        "operational_effects": {
+          "freight": {
+            "action": "divert_to_loop_or_crossing",
+            "speed_kmph": 0,
+            "reroute_enabled": true
+          },
+          "passenger": {
+            "action": "preplanned_path_with_delay",
+            "delay_minutes": 15,
+            "reroute_enabled": false
+          },
+          "map_visualization": {
+            "block_color": "ORANGE",
+            "show_maintenance_zone": true,
+            "show_rerouted_trains": true
+          }
+        }
+      },
+      "Point/turnout failure": {
+        "type": "track_block",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 30,
+          "freight": 45
+        },
+        "throughput_drop_percent": 50,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 60
+      },
+      "Overhead equipment (OHE) failure": {
+        "type": "track_block",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 40,
+          "freight": 55
+        },
+        "throughput_drop_percent": 55,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 90,
+        "operational_effects": {
+          "freight": {
+            "action": "electric_freight_stops_immediately",
+            "diesel_loco_required": true,
+            "delay_minutes": 60,
+            "load_restrictions_if_diesel": true
+          },
+          "passenger": {
+            "action": "rajdhani_shatabdi_forced_halt",
+            "emergency_diesel_attachment": true,
+            "delay_minutes": 40
+          },
+          "map_visualization": {
+            "show_train_halted_symbol": true,
+            "highlight_traction_off_area": true,
+            "block_color": "RED"
+          }
+        }
+      },
+      "Signal post or mast damage": {
+        "type": "signal_failure",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 25,
+          "freight": 40
+        },
+        "throughput_drop_percent": 45,
+        "speed_reduction": 0.25,
+        "requires_ta912": true,
+        "recovery_time_minutes": 75
+      },
+      "Bridge damage or structural issues": {
+        "type": "track_block",
+        "severity": "critical",
+        "base_delay_minutes": {
+          "passenger": 60,
+          "freight": 90
+        },
+        "throughput_drop_percent": 80,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 240
+      },
+      "Platform overcrowding or blockage": {
+        "type": "platform_issue",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 15,
+          "freight": 25
+        },
+        "throughput_drop_percent": 25,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 30
+      },
+      "Level crossing malfunction": {
+        "type": "track_block",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 20,
+          "freight": 30
+        },
+        "throughput_drop_percent": 30,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 45
+      },
+      "Tunnel clearance issues": {
+        "type": "track_block",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 35,
+          "freight": 50
+        },
+        "throughput_drop_percent": 50,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 90
+      }
+    },
+    "Signalling & Control System Failures": {
+      "Signal failure (red lamp failure, aspect stuck)": {
+        "type": "signal_failure",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 22,
+          "freight": 35
+        },
+        "throughput_drop_percent": 40,
+        "speed_reduction": 0.25,
+        "requires_ta912": true,
+        "recovery_time_minutes": 45,
+        "operational_effects": {
+          "freight": {
+            "action": "move_under_ta_order",
+            "speed_kmph": 20,
+            "block_clearance_time_increase": true,
+            "overtaken_more_often": true
+          },
+          "passenger": {
+            "action": "move_with_caution",
+            "speed_capped": true,
+            "priority_maintained": true
+          },
+          "map_visualization": {
+            "signal_color": "RED_YELLOW",
+            "show_speed_profile_drop": true,
+            "show_block_occupancy_extended": true,
+            "alert_on_signal_node": true
+          }
+        }
+      },
+      "Interlocking failure": {
+        "type": "signal_failure",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 30,
+          "freight": 45
+        },
+        "throughput_drop_percent": 50,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 60
+      },
+      "Axle counter failure / reset delays": {
+        "type": "signal_failure",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 15,
+          "freight": 25
+        },
+        "throughput_drop_percent": 30,
+        "speed_reduction": 0.3,
+        "recovery_time_minutes": 30,
+        "operational_effects": {
+          "freight": {
+            "action": "train_authorized_manually",
+            "speed_kmph": 15,
+            "wait_time_rises": true,
+            "more_loop_holdings": true
+          },
+          "passenger": {
+            "action": "faster_clearance_priority",
+            "speed_kmph": 20
+          },
+          "map_visualization": {
+            "show_manual_mode_alert": true,
+            "show_slow_moving_train_icon": true,
+            "signal_color": "AMBER"
+          }
+        }
+      },
+      "Track circuit failure": {
+        "type": "signal_failure",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 25,
+          "freight": 40
+        },
+        "throughput_drop_percent": 45,
+        "speed_reduction": 0.25,
+        "requires_ta912": true,
+        "recovery_time_minutes": 50
+      },
+      "Panel/Route Relay Interlocking (RRI) faults": {
+        "type": "signal_failure",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 35,
+          "freight": 50
+        },
+        "throughput_drop_percent": 55,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 90
+      },
+      "Automatic signalling section blackout": {
+        "type": "signal_failure",
+        "severity": "critical",
+        "base_delay_minutes": {
+          "passenger": 50,
+          "freight": 70
+        },
+        "throughput_drop_percent": 70,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 120
+      },
+      "Telecom/communication link failure between stations": {
+        "type": "operational",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 10,
+          "freight": 15
+        },
+        "throughput_drop_percent": 20,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 30
+      },
+      "TMS/CTC system outage": {
+        "type": "operational",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 30,
+          "freight": 45
+        },
+        "throughput_drop_percent": 50,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 60
+      }
+    },
+    "Rolling Stock / Train-Related Issues": {
+      "Locomotive failure (engine fault, traction motor issue)": {
+        "type": "rolling_stock",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 40,
+          "freight": 60
+        },
+        "throughput_drop_percent": 30,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 90,
+        "operational_effects": {
+          "freight": {
+            "action": "complete_halt",
+            "rescue_loco_requested": true,
+            "delay_minutes": 60
+          },
+          "passenger": {
+            "action": "backup_loco_quicker",
+            "delay_minutes": 30
+          },
+          "map_visualization": {
+            "show_train_stuck_mid_block": true,
+            "show_loco_rescue_path_line": true,
+            "train_color": "RED"
+          }
+        }
+      },
+      "Brake binding or brake failure": {
+        "type": "rolling_stock",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 35,
+          "freight": 50
+        },
+        "throughput_drop_percent": 35,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 60
+      },
+      "Coupler or hose failure": {
+        "type": "rolling_stock",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 25,
+          "freight": 40
+        },
+        "throughput_drop_percent": 25,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 45
+      },
+      "Wheel flat or bearing overheating": {
+        "type": "rolling_stock",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 30,
+          "freight": 45
+        },
+        "throughput_drop_percent": 30,
+        "speed_reduction": 0.5,
+        "recovery_time_minutes": 75
+      },
+      "Coach or wagon defect": {
+        "type": "rolling_stock",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 20,
+          "freight": 35
+        },
+        "throughput_drop_percent": 20,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 30
+      },
+      "Air pressure issues in freight trains": {
+        "type": "rolling_stock",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 0,
+          "freight": 30
+        },
+        "throughput_drop_percent": 15,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 45
+      },
+      "Fire or smoke inside a coach/wagon": {
+        "type": "rolling_stock",
+        "severity": "critical",
+        "base_delay_minutes": {
+          "passenger": 60,
+          "freight": 90
+        },
+        "throughput_drop_percent": 80,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 180
+      }
+    },
+    "Operational Disruptions": {
+      "Crew unavailability or delayed crew change": {
+        "type": "operational",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 15,
+          "freight": 25
+        },
+        "throughput_drop_percent": 20,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 30,
+        "operational_effects": {
+          "freight": {
+            "action": "held_at_yard_or_loop",
+            "departure_delayed": true
+          },
+          "passenger": {
+            "action": "slight_delay",
+            "crew_priority_high": true
+          },
+          "map_visualization": {
+            "show_dwell_time_spike": true,
+            "highlight_station": true
+          }
+        }
+      },
+      "Locomotive unavailability": {
+        "type": "operational",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 35,
+          "freight": 50
+        },
+        "throughput_drop_percent": 30,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 60
+      },
+      "Rake/consist not ready": {
+        "type": "operational",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 20,
+          "freight": 30
+        },
+        "throughput_drop_percent": 25,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 45,
+        "operational_effects": {
+          "freight": {
+            "action": "yard_departure_delayed",
+            "path_allocation_shifts": true,
+            "other_freight_bunch_up": true
+          },
+          "passenger": {
+            "action": "minor_delay"
+          },
+          "map_visualization": {
+            "show_yard_congestion_spike": true,
+            "highlight_yard": true
+          }
+        }
+      },
+      "Late incoming connecting train": {
+        "type": "operational",
+        "severity": "low",
+        "base_delay_minutes": {
+          "passenger": 10,
+          "freight": 15
+        },
+        "throughput_drop_percent": 10,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 15
+      },
+      "Platform occupancy congestion": {
+        "type": "platform_issue",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 12,
+          "freight": 20
+        },
+        "throughput_drop_percent": 20,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 25,
+        "operational_effects": {
+          "freight": {
+            "action": "diverted_to_loop_lines",
+            "loop_occupancy_increases": true
+          },
+          "passenger": {
+            "action": "priority_platform_cleared_faster"
+          },
+          "map_visualization": {
+            "show_platform_occupancy_color_intensity": true,
+            "highlight_platform": true
+          }
+        }
+      },
+      "Overtake or crossing delays": {
+        "type": "operational",
+        "severity": "low",
+        "base_delay_minutes": {
+          "passenger": 8,
+          "freight": 12
+        },
+        "throughput_drop_percent": 15,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 20
+      },
+      "Wrong routing requiring correction": {
+        "type": "operational",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 18,
+          "freight": 28
+        },
+        "throughput_drop_percent": 22,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 35,
+        "operational_effects": {
+          "freight": {
+            "action": "loop_diversion",
+            "unnecessary_wait": true
+          },
+          "passenger": {
+            "action": "controller_corrects_routing_immediately"
+          },
+          "map_visualization": {
+            "show_path_deviation_line": true,
+            "highlight_wrong_route": true
+          }
+        }
+      },
+      "Excessive dwell time at stations": {
+        "type": "operational",
+        "severity": "low",
+        "base_delay_minutes": {
+          "passenger": 5,
+          "freight": 10
+        },
+        "throughput_drop_percent": 10,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 15
+      }
+    },
+    "Environmental & Natural Disruptions": {
+      "Heavy rain leading to waterlogging on tracks": {
+        "type": "weather_slowdown",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 25,
+          "freight": 40
+        },
+        "throughput_drop_percent": 40,
+        "speed_reduction": 0.4,
+        "tsr_speed_kmph": 50,
+        "recovery_time_minutes": 60,
+        "operational_effects": {
+          "freight": {
+            "action": "speed_restricted",
+            "speed_kmph": 30,
+            "wagons_risk_skidding": true
+          },
+          "passenger": {
+            "action": "slow_movement_less_delay",
+            "speed_kmph": 40
+          },
+          "map_visualization": {
+            "show_speed_drop": true,
+            "show_long_block_occupancy": true,
+            "section_color": "BLUE"
+          }
+        }
+      },
+      "Fog reducing visibility and speed": {
+        "type": "weather_slowdown",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 12,
+          "freight": 18
+        },
+        "throughput_drop_percent": 25,
+        "speed_reduction": 0.4,
+        "tsr_speed_kmph": 45,
+        "recovery_time_minutes": 90,
+        "operational_effects": {
+          "freight": {
+            "action": "speed_capped",
+            "speed_kmph": 35,
+            "overtaking_disabled": true
+          },
+          "passenger": {
+            "action": "speed_drop_priority_maintained",
+            "speed_kmph": 40
+          },
+          "map_visualization": {
+            "show_speed_curve_dip": true,
+            "show_headway_increased": true,
+            "section_color": "YELLOW"
+          }
+        }
+      },
+      "Landslide or mudslide on track": {
+        "type": "track_block",
+        "severity": "critical",
+        "base_delay_minutes": {
+          "passenger": 90,
+          "freight": 120
+        },
+        "throughput_drop_percent": 100,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 360
+      },
+      "Flooding or river overflow": {
+        "type": "track_block",
+        "severity": "critical",
+        "base_delay_minutes": {
+          "passenger": 120,
+          "freight": 180
+        },
+        "throughput_drop_percent": 100,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 480
+      },
+      "Heatwave causing track expansion": {
+        "type": "weather_slowdown",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 15,
+          "freight": 25
+        },
+        "throughput_drop_percent": 20,
+        "speed_reduction": 0.3,
+        "tsr_speed_kmph": 60,
+        "recovery_time_minutes": 45
+      },
+      "Storm/wind damage": {
+        "type": "track_block",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 40,
+          "freight": 60
+        },
+        "throughput_drop_percent": 50,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 120
+      },
+      "Snow or ice": {
+        "type": "weather_slowdown",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 30,
+          "freight": 45
+        },
+        "throughput_drop_percent": 35,
+        "speed_reduction": 0.5,
+        "tsr_speed_kmph": 40,
+        "recovery_time_minutes": 120
+      },
+      "Earthquake alerts": {
+        "type": "track_block",
+        "severity": "critical",
+        "base_delay_minutes": {
+          "passenger": 60,
+          "freight": 90
+        },
+        "throughput_drop_percent": 100,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 180
+      }
+    },
+    "External / Human-Induced Disruptions": {
+      "Trespassing and track obstruction": {
+        "type": "track_block",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 20,
+          "freight": 30
+        },
+        "throughput_drop_percent": 30,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 45,
+        "operational_effects": {
+          "freight": {
+            "action": "emergency_braking",
+            "restart_takes_long": true,
+            "delays_ripple_across_blocks": true
+          },
+          "passenger": {
+            "action": "emergency_stop_restart_faster"
+          },
+          "map_visualization": {
+            "show_delay_spike_at_point": true,
+            "show_emergency_stop_marker": true
+          }
+        }
+      },
+      "Cattle run-over or animal intrusion": {
+        "type": "track_block",
+        "severity": "low",
+        "base_delay_minutes": {
+          "passenger": 10,
+          "freight": 15
+        },
+        "throughput_drop_percent": 15,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 30,
+        "operational_effects": {
+          "freight": {
+            "action": "emergency_brake_reacceleration_lag",
+            "big_impact_for_heavy_trains": true
+          },
+          "passenger": {
+            "action": "smaller_delay"
+          },
+          "map_visualization": {
+            "show_short_sudden_stop_spike": true,
+            "show_obstruction_marker": true
+          }
+        }
+      },
+      "Unmanned level crossing accidents": {
+        "type": "track_block",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 45,
+          "freight": 60
+        },
+        "throughput_drop_percent": 60,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 120
+      },
+      "Public protests/rail roko": {
+        "type": "track_block",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 60,
+          "freight": 90
+        },
+        "throughput_drop_percent": 80,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 180,
+        "operational_effects": {
+          "freight": {
+            "action": "freight_traffic_halted",
+            "high_cumulative_delay": true
+          },
+          "passenger": {
+            "action": "controlled_rerouting_if_possible"
+          },
+          "map_visualization": {
+            "entire_section_turns_red": true,
+            "all_trains_stopped": true,
+            "block_color": "DARK_RED"
+          }
+        }
+      },
+      "Vandalism or stone-pelting": {
+        "type": "track_block",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 15,
+          "freight": 25
+        },
+        "throughput_drop_percent": 25,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 40
+      },
+      "Security threats or bomb scares": {
+        "type": "track_block",
+        "severity": "critical",
+        "base_delay_minutes": {
+          "passenger": 90,
+          "freight": 120
+        },
+        "throughput_drop_percent": 100,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 240
+      },
+      "Fire near trackside": {
+        "type": "track_block",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 40,
+          "freight": 60
+        },
+        "throughput_drop_percent": 60,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 90
+      },
+      "Power grid failure affecting traction supply": {
+        "type": "track_block",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 50,
+          "freight": 75
+        },
+        "throughput_drop_percent": 70,
+        "speed_reduction": 0.0,
+        "complete_block": true,
+        "recovery_time_minutes": 120
+      }
+    },
+    "Freight Operations Specific Disruptions": {
+      "Overloaded wagon detection": {
+        "type": "rolling_stock",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 0,
+          "freight": 30
+        },
+        "throughput_drop_percent": 10,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 45
+      },
+      "Freight rake brake-test failure": {
+        "type": "rolling_stock",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 0,
+          "freight": 45
+        },
+        "throughput_drop_percent": 20,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 60
+      },
+      "Heavy freight lineup causing congestion": {
+        "type": "operational",
+        "severity": "medium",
+        "base_delay_minutes": {
+          "passenger": 8,
+          "freight": 15
+        },
+        "throughput_drop_percent": 15,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 30,
+        "operational_effects": {
+          "freight": {
+            "action": "multiple_freights_wait_at_yard_entry",
+            "path_allocation_delayed": true,
+            "average_delay_minutes": 20
+          },
+          "passenger": {
+            "action": "no_major_effect"
+          },
+          "map_visualization": {
+            "show_yard_queue_visualization": true,
+            "highlight_yard_entry": true
+          }
+        }
+      },
+      "Yard entry/exit delays": {
+        "type": "operational",
+        "severity": "low",
+        "base_delay_minutes": {
+          "passenger": 0,
+          "freight": 20
+        },
+        "throughput_drop_percent": 10,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 25
+      },
+      "Freight train stalling on gradient": {
+        "type": "rolling_stock",
+        "severity": "high",
+        "base_delay_minutes": {
+          "passenger": 0,
+          "freight": 50
+        },
+        "throughput_drop_percent": 25,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 90
+      },
+      "Slow-speed freight affecting passenger paths": {
+        "type": "operational",
+        "severity": "low",
+        "base_delay_minutes": {
+          "passenger": 5,
+          "freight": 0
+        },
+        "throughput_drop_percent": 8,
+        "speed_reduction": 0.0,
+        "recovery_time_minutes": 15
+      }
+    }
+  }
+}
+

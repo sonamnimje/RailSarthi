@@ -1,0 +1,8 @@
+section_id,from_station,to_station,distance_km,tracks,electrified,max_speed_kmph,division
+ET-NDPM,ET,NDPM,18,2,TRUE,110,itarsi_bhopal
+NDPM-ODG,NDPM,ODG,27,2,TRUE,115,itarsi_bhopal
+ODG-MDDP,ODG,MDDP,20,2,TRUE,120,itarsi_bhopal
+MDDP-MSO,MDDP,MSO,13,2,TRUE,120,itarsi_bhopal
+MSO-RKMP,MSO,RKMP,12,4,TRUE,125,itarsi_bhopal
+RKMP-BPL,RKMP,BPL,6,4,TRUE,120,itarsi_bhopal
+

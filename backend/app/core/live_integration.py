@@ -41,13 +41,9 @@ class LiveIntegrationEngine:
     
     def __init__(self):
         """Initialize live integration engine"""
-        try:
-            self.rapidapi_client = get_rapidapi_client()
-            self.enabled = True
-        except Exception as e:
-            logger.warning(f"RapidAPI client initialization failed: {e}. Live integration disabled.")
-            self.rapidapi_client = None
-            self.enabled = False
+        # RapidAPI integration disabled; keep flag off to avoid external calls
+        self.rapidapi_client = None
+        self.enabled = False
         
         self.live_train_cache: Dict[str, LiveTrainStatus] = {}  # train_no -> LiveTrainStatus
         self.cache_ttl = timedelta(minutes=2)  # Cache for 2 minutes

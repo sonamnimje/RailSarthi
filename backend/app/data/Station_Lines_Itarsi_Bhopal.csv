@@ -1,0 +1,61 @@
+Station,Loop,Type,Length_m,Usage
+Itarsi,1,Main,720,Passenger
+Itarsi,2,Loop,680,Freight
+Itarsi,3,Loop,650,Overtake
+Itarsi,4,Yard,800,Freight Hold
+Itarsi,5,Loop,700,Crossing
+Itarsi,6,Siding,750,Maintenance
+Narmadapuram,1,Main,640,Passenger
+Narmadapuram,2,Loop,610,Freight
+Narmadapuram,3,Loop,620,Crossing
+Narmadapuram,4,Siding,630,Parcel
+Narmadapuram,5,Loop,600,Overtake
+Obaidullaganj,1,Main,650,Passenger
+Obaidullaganj,2,Loop,600,Freight
+Obaidullaganj,3,Loop,590,Goods
+Obaidullaganj,4,Yard,700,Freight Hold
+Obaidullaganj,5,Siding,620,Maintenance
+Mandideep,1,Main,660,Passenger
+Mandideep,2,Loop,610,Freight
+Mandideep,3,Loop,605,Crossing
+Mandideep,4,Siding,650,Overtake
+Mandideep,5,Loop,640,Goods
+Misrod,1,Main,670,Passenger
+Misrod,2,Loop,640,Freight
+Misrod,3,Loop,630,Overtake
+Misrod,4,Siding,600,Maintenance
+Misrod,5,Loop,680,Crossing
+RKMP,1,Main,700,Passenger
+RKMP,2,Loop,680,Freight
+RKMP,3,Loop,660,Overtake
+RKMP,4,Loop,640,Express Priority
+RKMP,5,Yard,750,Freight Hold
+RKMP,6,Siding,720,Maintenance
+RKMP,7,Loop,690,Suburban
+Bhopal,1,Main,710,Passenger
+Bhopal,2,Loop,690,Freight
+Bhopal,3,Loop,675,Crossing
+Bhopal,4,Loop,660,Overtake
+Bhopal,5,Yard,800,Freight Hold
+Bhopal,6,Siding,720,Maintenance
+Bhopal,7,Loop,640,Suburban
+Bhopal,8,Loop,650,Goods
+Bhopal,9,Loop,630,Express Priority
+Bhopal,2,Extra-Loop,620,Operational Buffer
+Bhopal,3,Extra-Loop,630,Operational Buffer
+Bhopal,4,Extra-Loop,640,Operational Buffer
+Bhopal,5,Extra-Loop,600,Operational Buffer
+Bhopal,6,Extra-Loop,610,Operational Buffer
+Bhopal,7,Extra-Loop,620,Operational Buffer
+Bhopal,8,Extra-Loop,630,Operational Buffer
+Bhopal,9,Extra-Loop,640,Operational Buffer
+Bhopal,10,Extra-Loop,600,Operational Buffer
+Bhopal,11,Extra-Loop,610,Operational Buffer
+Bhopal,12,Extra-Loop,620,Operational Buffer
+Bhopal,13,Extra-Loop,630,Operational Buffer
+Bhopal,14,Extra-Loop,640,Operational Buffer
+Bhopal,15,Extra-Loop,600,Operational Buffer
+Bhopal,16,Extra-Loop,610,Operational Buffer
+Bhopal,17,Extra-Loop,620,Operational Buffer
+Bhopal,18,Extra-Loop,630,Operational Buffer
+Bhopal,19,Extra-Loop,640,Operational Buffer

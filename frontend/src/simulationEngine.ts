@@ -29,7 +29,18 @@ export type TrainConfig = {
 	color: string
 }
 
-export type DisruptionType = 'signal_failure' | 'track_block' | 'weather_slowdown'
+export type DisruptionType = 
+	| 'signal_failure' 
+	| 'track_block' 
+	| 'weather_slowdown'
+	| 'rolling_stock'
+	| 'operational'
+	| 'platform_issue'
+	| 'platform_congestion'
+	| 'emergency'
+	| 'multiple'
+	| 'high_traffic'
+	| 'peak_capacity'
 
 export type Disruption = {
 	id: string
@@ -63,6 +74,29 @@ export type TrainRuntime = {
 	speedSamples: number[]
 }
 
+export type PrioritizationAction = 
+	| 'give_precedence'
+	| 'hold_train'
+	| 'reroute'
+	| 'regulate_speed'
+	| 'platform_reassignment'
+
+export type PrioritizationDecision = {
+	id: string
+	trainId: string
+	action: PrioritizationAction
+	description: string
+	impact: string
+	appliedAt: number
+	applied: boolean
+	overridden: boolean
+	expectedDelayReduction?: number
+	affectedTrains?: string[]
+	stationCode?: string
+	durationMin?: number
+	speedKmph?: number
+}
+
 export type SimulationSnapshot = {
 	simTimeMin: number
 	running: boolean
@@ -70,6 +104,7 @@ export type SimulationSnapshot = {
 	trains: Record<string, TrainRuntime>
 	lastDisruptionEnd?: number
 	speedMultiplier: number
+	prioritizationDecisions: PrioritizationDecision[]
 }
 
 type EngineConfig = {
@@ -131,6 +166,7 @@ export const createSimulationEngine = (config: EngineConfig) => {
 		disruptions: [],
 		trains: {},
 		speedMultiplier: 1,
+		prioritizationDecisions: [],
 	}
 
 	const subscribers = new Set<Subscriber>()
@@ -168,6 +204,7 @@ export const createSimulationEngine = (config: EngineConfig) => {
 			disruptions: state.disruptions,
 			trains: initTrains(),
 			speedMultiplier: state.speedMultiplier,
+			prioritizationDecisions: state.prioritizationDecisions,
 		}
 		notify()
 	}
@@ -207,12 +244,26 @@ export const createSimulationEngine = (config: EngineConfig) => {
 				runtime.currentSpeedKmph = 0
 				if (runtime.dwellRemaining <= 0) {
 					runtime.actualTimes[trainCfg.stations[runtime.segmentIndex].stationCode] =
-						(snapshotTimeMin + deltaMin - remaining) ?? snapshotTimeMin
+						snapshotTimeMin + deltaMin - remaining
 				}
 				continue
 			}
 
-			const baseSpeed = computeSegmentSpeed(trainCfg, config.stations, runtime.segmentIndex) || trainCfg.speedKmph
+			let baseSpeed = computeSegmentSpeed(trainCfg, config.stations, runtime.segmentIndex) || trainCfg.speedKmph
+			
+			// Apply speed regulation from prioritization decisions
+			const activeSpeedRegulation = state.prioritizationDecisions
+				.filter(d => d.applied && !d.overridden && d.trainId === runtime.trainId && d.action === 'regulate_speed')
+				.find(d => {
+					// Check if regulation is still active (within duration)
+					const decisionAge = snapshotTimeMin - d.appliedAt
+					return decisionAge >= 0 && decisionAge <= (d.durationMin || 60)
+				})
+			
+			if (activeSpeedRegulation && activeSpeedRegulation.speedKmph) {
+				baseSpeed = Math.min(baseSpeed, activeSpeedRegulation.speedKmph)
+			}
+			
 			const activeFactors = state.disruptions
 				.filter((d) => isDisruptionActive(d, config.stations, state.simTimeMin, runtime.distanceKm))
 				.map((d) => d.speedReduction[trainCfg.trainType])
@@ -302,8 +353,63 @@ export const createSimulationEngine = (config: EngineConfig) => {
 		notify()
 	}
 
+	const addDisruption = (disruption: Disruption) => {
+		const now = performance.now()
+		state.disruptions = [...state.disruptions, disruption]
+		const latestEnd = state.disruptions.map((d) => d.startAtMin + d.durationMin).sort((a, b) => b - a)[0]
+		if (latestEnd) state.lastDisruptionEnd = latestEnd
+		lastFrame = now
+		notify()
+	}
+
+	const clearDisruptions = () => {
+		const now = performance.now()
+		state.disruptions = []
+		state.lastDisruptionEnd = undefined
+		lastFrame = now
+		notify()
+	}
+
 	const setSpeedMultiplier = (multiplier: number) => {
 		state.speedMultiplier = multiplier
+		notify()
+	}
+
+	const applyPrioritizationDecision = (decision: PrioritizationDecision) => {
+		const now = performance.now()
+		const decisionWithTime: PrioritizationDecision = {
+			...decision,
+			id: decision.id || `decision_${Date.now()}`,
+			appliedAt: decision.appliedAt ?? state.simTimeMin,
+			applied: decision.applied ?? true,
+			overridden: decision.overridden ?? false,
+		}
+		state.prioritizationDecisions = [...state.prioritizationDecisions, decisionWithTime]
+		
+		// Apply the decision to train behavior only if applied and not overridden
+		if (decisionWithTime.applied && !decisionWithTime.overridden) {
+			const runtime = state.trains[decision.trainId]
+			if (runtime) {
+				if (decision.action === 'hold_train' && decision.durationMin) {
+					// Add hold time to dwell
+					runtime.dwellRemaining += decision.durationMin
+				} else if (decision.action === 'regulate_speed' && decision.speedKmph) {
+					// Store speed regulation in runtime (can be used in advanceTrain)
+					;(runtime as any).regulatedSpeedKmph = decision.speedKmph
+				}
+			}
+		}
+		
+		lastFrame = now
+		notify()
+	}
+
+	const overridePrioritizationDecision = (decisionId: string) => {
+		const now = performance.now()
+		state.prioritizationDecisions = state.prioritizationDecisions.map(d => 
+			d.id === decisionId ? { ...d, overridden: true, applied: false } : d
+		)
+		lastFrame = now
 		notify()
 	}
 
@@ -330,7 +436,11 @@ export const createSimulationEngine = (config: EngineConfig) => {
 		reset,
 		subscribe,
 		setDisruptions,
+		addDisruption,
+		clearDisruptions,
 		setSpeedMultiplier,
+		applyPrioritizationDecision,
+		overridePrioritizationDecision,
 		getState,
 	}
 }

@@ -1,0 +1,9 @@
+code,name,lat,lon,division,is_junction,platforms
+ET,Itarsi Junction,22.6060,77.7590,itarsi_bhopal,TRUE,8
+NDPM,Narmadapuram,22.7440,77.7275,itarsi_bhopal,FALSE,3
+ODG,Obaidullaganj,22.9930,77.5850,itarsi_bhopal,FALSE,3
+MDDP,Mandideep,23.0825,77.5290,itarsi_bhopal,FALSE,3
+MSO,Misrod,23.1789,77.4648,itarsi_bhopal,FALSE,3
+RKMP,Rani Kamalapati,23.2355,77.4332,itarsi_bhopal,FALSE,5
+BPL,Bhopal Junction,23.2599,77.4029,itarsi_bhopal,TRUE,6
+

@@ -9,6 +9,9 @@ import logging
 from app.services.adapter import build_simulator_from_inputs
 from app.services.division_loader import load_division_dataset, normalize_stations
 from app.services.live_train_service import LiveTrainService
+from app.services.dataset_loader import load_time_distance_json
+from app.core.graph_builder import TimeDistanceGraphBuilder
+from app.core.ai_engine import get_ai_engine
 
 logger = logging.getLogger(__name__)
 
@@ -326,3 +329,160 @@ def map_live_positions(live_data: List[Dict[str, Any]], division: str = "mumbai"
     except Exception as e:
         logger.error(f"Mapping failed: {e}", exc_info=True)
         return []
+
+
+# -----------------------------------------------------------------------------
+# Time-distance realtime manager (Jabalpur → Itarsi)
+# -----------------------------------------------------------------------------
+
+class TimeDistanceRealtimeManager:
+    """
+    Lightweight realtime manager that keeps the latest simulation graph,
+    disruptions, and KPIs for the Jabalpur → Itarsi time–distance view.
+    """
+
+    def __init__(self, dataset: Optional[Dict[str, Any]] = None) -> None:
+        self.dataset = dataset or load_time_distance_json()
+        self.disruptions: List[Dict[str, Any]] = []
+        self.builder = TimeDistanceGraphBuilder(self.dataset)
+        self.ai_engine = get_ai_engine()
+        self.last_graph = self.builder.build()
+        self.last_kpis = self.ai_engine.calculate_kpis(self.last_graph.get("points", []), self.dataset, self.disruptions)
+
+    def refresh(self) -> Dict[str, Any]:
+        """Rebuild the graph and KPIs using current disruptions."""
+        self.builder = TimeDistanceGraphBuilder(self.dataset)
+        self.last_graph = self.builder.build(self.disruptions)
+        self.last_kpis = self.ai_engine.calculate_kpis(
+            self.last_graph.get("points", []), self.dataset, self.disruptions
+        )
+        return self.last_graph
+
+    def add_disruption(self, disruption: Dict[str, Any]) -> Dict[str, Any]:
+        """Register a new disruption and rebuild."""
+        self.disruptions.append(disruption)
+        return self.refresh()
+
+    def clear_disruptions(self) -> Dict[str, Any]:
+        """Clear all disruptions and rebuild the baseline graph."""
+        self.disruptions = []
+        return self.refresh()
+
+    def get_graph(self) -> Dict[str, Any]:
+        """Return the latest graph, rebuilding if empty."""
+        if not self.last_graph:
+            return self.refresh()
+        return self.last_graph
+
+    def get_kpis(self) -> Dict[str, Any]:
+        """Return the latest KPIs."""
+        if not self.last_kpis:
+            self.refresh()
+        return self.last_kpis
+
+    def get_positions(self, current_time: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Compute live positions for all trains by interpolating the latest graph
+        at the provided time (defaults to now).
+        """
+        graph = self.get_graph()
+        points = graph.get("points", [])
+        now_minutes = self._time_to_minutes(current_time) if current_time else self._time_to_minutes_now()
+
+        positions: List[Dict[str, Any]] = []
+        by_train: Dict[str, List[Dict[str, Any]]] = {}
+        for p in points:
+            by_train.setdefault(p["train_id"], []).append(p)
+
+        for train_id, t_points in by_train.items():
+            ordered = sorted(t_points, key=lambda p: self._time_to_minutes(p["time"]))
+            if not ordered:
+                continue
+
+            # Before start
+            if now_minutes <= self._time_to_minutes(ordered[0]["time"]):
+                p0 = ordered[0]
+                positions.append(
+                    {
+                        "train_id": train_id,
+                        "distance_km": p0["distance_km"],
+                        "time": p0["time"],
+                        "station": p0.get("station"),
+                        "status": "not_departed",
+                    }
+                )
+                continue
+
+            # After end
+            if now_minutes >= self._time_to_minutes(ordered[-1]["time"]):
+                p1 = ordered[-1]
+                positions.append(
+                    {
+                        "train_id": train_id,
+                        "distance_km": p1["distance_km"],
+                        "time": p1["time"],
+                        "station": p1.get("station"),
+                        "status": "arrived",
+                    }
+                )
+                continue
+
+            prev_pt = ordered[0]
+            next_pt = ordered[-1]
+            for i in range(1, len(ordered)):
+                if self._time_to_minutes(ordered[i]["time"]) >= now_minutes:
+                    prev_pt = ordered[i - 1]
+                    next_pt = ordered[i]
+                    break
+
+            prev_t = self._time_to_minutes(prev_pt["time"])
+            next_t = self._time_to_minutes(next_pt["time"])
+            progress = 0.0
+            if next_t > prev_t:
+                progress = (now_minutes - prev_t) / (next_t - prev_t)
+
+            distance = prev_pt["distance_km"] + progress * (next_pt["distance_km"] - prev_pt["distance_km"])
+
+            positions.append(
+                {
+                    "train_id": train_id,
+                    "distance_km": round(distance, 2),
+                    "time": current_time or self._minutes_to_time(now_minutes),
+                    "from_event": prev_pt.get("event"),
+                    "to_event": next_pt.get("event"),
+                    "status": "running",
+                }
+            )
+
+        return positions
+
+    @staticmethod
+    def _time_to_minutes(time_str: str) -> int:
+        try:
+            hh, mm = time_str.split(":")
+            return int(hh) * 60 + int(mm)
+        except Exception:
+            return 0
+
+    @staticmethod
+    def _minutes_to_time(minutes_val: int) -> str:
+        hh = (minutes_val // 60) % 24
+        mm = minutes_val % 60
+        return f"{hh:02d}:{mm:02d}"
+
+    @staticmethod
+    def _time_to_minutes_now() -> int:
+        now = datetime.now()
+        return now.hour * 60 + now.minute
+
+
+# Singleton accessor
+_td_manager: Optional[TimeDistanceRealtimeManager] = None
+
+
+def get_time_distance_manager() -> TimeDistanceRealtimeManager:
+    """Return singleton for the time–distance realtime manager."""
+    global _td_manager
+    if _td_manager is None:
+        _td_manager = TimeDistanceRealtimeManager()
+    return _td_manager

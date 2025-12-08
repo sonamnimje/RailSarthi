@@ -1,0 +1,55 @@
+category,disruption
+Infrastructure-Related Disruptions,"Track blockage (broken rail, weld failure)"
+Infrastructure-Related Disruptions,Track maintenance / engineering work
+Infrastructure-Related Disruptions,Point/turnout failure
+Infrastructure-Related Disruptions,Overhead equipment (OHE) failure
+Infrastructure-Related Disruptions,Signal post or mast damage
+Infrastructure-Related Disruptions,Bridge damage or structural issues
+Infrastructure-Related Disruptions,Platform overcrowding or blockage
+Infrastructure-Related Disruptions,Level crossing malfunction
+Infrastructure-Related Disruptions,Tunnel clearance issues
+Signalling & Control System Failures,"Signal failure (red lamp failure, aspect stuck)"
+Signalling & Control System Failures,Interlocking failure
+Signalling & Control System Failures,Axle counter failure / reset delays
+Signalling & Control System Failures,Track circuit failure
+Signalling & Control System Failures,Panel/Route Relay Interlocking (RRI) faults
+Signalling & Control System Failures,Automatic signalling section blackout
+Signalling & Control System Failures,Telecom/communication link failure between stations
+Signalling & Control System Failures,TMS/CTC system outage
+Rolling Stock / Train-Related Issues,"Locomotive failure (engine fault, traction motor issue)"
+Rolling Stock / Train-Related Issues,Brake binding or brake failure
+Rolling Stock / Train-Related Issues,Coupler or hose failure
+Rolling Stock / Train-Related Issues,Wheel flat or bearing overheating
+Rolling Stock / Train-Related Issues,Coach or wagon defect
+Rolling Stock / Train-Related Issues,Air pressure issues in freight trains
+Rolling Stock / Train-Related Issues,Fire or smoke inside a coach/wagon
+Operational Disruptions,Crew unavailability or delayed crew change
+Operational Disruptions,Locomotive unavailability
+Operational Disruptions,Rake/consist not ready
+Operational Disruptions,Late incoming connecting train
+Operational Disruptions,Platform occupancy congestion
+Operational Disruptions,Overtake or crossing delays
+Operational Disruptions,Wrong routing requiring correction
+Operational Disruptions,Excessive dwell time at stations
+Environmental & Natural Disruptions,Heavy rain leading to waterlogging on tracks
+Environmental & Natural Disruptions,Fog reducing visibility and speed
+Environmental & Natural Disruptions,Landslide or mudslide on track
+Environmental & Natural Disruptions,Flooding or river overflow
+Environmental & Natural Disruptions,Heatwave causing track expansion
+Environmental & Natural Disruptions,Storm/wind damage
+Environmental & Natural Disruptions,Snow or ice
+Environmental & Natural Disruptions,Earthquake alerts
+External / Human-Induced Disruptions,Trespassing and track obstruction
+External / Human-Induced Disruptions,Cattle run-over or animal intrusion
+External / Human-Induced Disruptions,Unmanned level crossing accidents
+External / Human-Induced Disruptions,Public protests/rail roko
+External / Human-Induced Disruptions,Vandalism or stone-pelting
+External / Human-Induced Disruptions,Security threats or bomb scares
+External / Human-Induced Disruptions,Fire near trackside
+External / Human-Induced Disruptions,Power grid failure affecting traction supply
+Freight Operations Specific Disruptions,Overloaded wagon detection
+Freight Operations Specific Disruptions,Freight rake brake-test failure
+Freight Operations Specific Disruptions,Heavy freight lineup causing congestion
+Freight Operations Specific Disruptions,Yard entry/exit delays
+Freight Operations Specific Disruptions,Freight train stalling on gradient
+Freight Operations Specific Disruptions,Slow-speed freight affecting passenger paths

@@ -12,9 +12,7 @@ load_dotenv()
 
 router = APIRouter()
 
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY") or settings.RAPIDAPI_IRCTC_KEY
-_raw_host = os.getenv("RAPIDAPI_HOST") or settings.RAPIDAPI_IRCTC_HOST or "irctc1.p.rapidapi.com"
-RAPIDAPI_HOST = _raw_host.rstrip("/")
+
 
 
 def convert_time(raw_time):
@@ -47,52 +45,10 @@ async def get_live_trains(
     trainNo: str = None
 ):
 
-    if not RAPIDAPI_KEY:
-        raise HTTPException(500, "Missing RAPIDAPI_KEY")
-
-    url = f"https://{RAPIDAPI_HOST}/api/v3/getLiveStation"
-    params = {
-        "fromStationCode": fromStationCode,
-        "hours": str(hours)
+    # RapidAPI removed: return empty dataset with clear message
+    return {
+        "station": fromStationCode,
+        "total_trains": 0,
+        "trains": [],
+        "note": "RapidAPI live train feed disabled"
     }
-    headers = {
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
-        "X-RapidAPI-Host": RAPIDAPI_HOST
-    }
-
-    try:
-        client = get_rapidapi_client()
-        # FIXED — use new request function
-        data = await client._request(url, params=params, headers=headers)
-
-        if not isinstance(data, dict):
-            raise HTTPException(502, "Invalid response format")
-
-        trains = data.get("data", [])
-        if trainNo:
-            trains = [t for t in trains if t.get("trainNumber") == trainNo]
-
-        final = []
-        for t in trains:
-            arr_raw = pick(t, "arrivalTime", "arriveTime", default=None)
-            dep_raw = pick(t, "departureTime", "departTime", default=None)
-
-            final.append({
-                "trainNumber": pick(t, "trainNumber", "train_no"),
-                "trainName": pick(t, "trainName", "train_name"),
-                "arrivalTime": convert_time(arr_raw),
-                "departureTime": convert_time(dep_raw),
-                "status": t.get("status", "RUNNING"),
-                "platform": pick(t, "platformNumber", "platform"),
-                "delay": t.get("delay", 0),
-                "stationName": pick(t, "stationName", "station_name")
-            })
-
-        return {
-            "station": fromStationCode,
-            "total_trains": len(final),
-            "trains": final
-        }
-
-    except Exception as e:
-        raise HTTPException(500, f"Error fetching train data: {e}")

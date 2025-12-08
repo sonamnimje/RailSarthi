@@ -120,9 +120,10 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 				has_fallback_data = False
 				
 				# Try to get positions from digital twin endpoint first (fallback)
+				# This includes rerouting logic
 				try:
 					from app.api.routes.digital_twin import get_digital_twin_positions
-					fallback_response = await get_digital_twin_positions(division_lower)
+					fallback_response = await get_digital_twin_positions(division_lower, include_rerouting=True)
 					if fallback_response and fallback_response.get("trains"):
 						has_fallback_data = True
 						for train in fallback_response.get("trains", []):
@@ -131,8 +132,14 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 							
 							train_updates.append({
 								"trainNo": train.get("trainNo", ""),
+								"trainName": train.get("trainName", ""),
+								"trainType": train.get("trainType", ""),
 								"currentSection": section_id,
-								"progress": max(0.0, min(1.0, progress))
+								"progress": max(0.0, min(1.0, progress)),
+								"status": train.get("status", "RUNNING"),
+								"rerouted": train.get("rerouted", False),
+								"alternativeRoute": train.get("alternativeRoute"),
+								"originalSection": train.get("originalSection")
 							})
 				except Exception as fallback_err:
 					logger.debug(f"Fallback position fetch failed: {fallback_err}")
@@ -164,15 +171,36 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 						if section_id:
 							train_updates.append({
 								"trainNo": train_no,
+								"trainName": train_data.get("name", ""),
+								"trainType": train_data.get("type", ""),
 								"currentSection": section_id,
-								"progress": progress
+								"progress": progress,
+								"status": "RUNNING",
+								"rerouted": False,
+								"alternativeRoute": None,
+								"originalSection": None
 							})
 				
-				# 4. Send JSON update (even if empty, to keep connection alive)
+				# 4. Fetch disruptions for this division
+				disruptions_update = []
+				try:
+					from app.api.routes.digital_twin import get_digital_twin_disruptions
+					disruptions_response = await get_digital_twin_disruptions(division_lower)
+					if disruptions_response and disruptions_response.get("disruptions"):
+						# Filter only active disruptions
+						disruptions_update = [
+							d for d in disruptions_response.get("disruptions", [])
+							if d.get("status") == "active"
+						]
+				except Exception as disruption_err:
+					logger.debug(f"Failed to fetch disruptions: {disruption_err}")
+				
+				# 5. Send JSON update (even if empty, to keep connection alive)
 				await websocket.send_json({
 					"type": "live_update",
 					"division": division_lower,
 					"trains": train_updates,
+					"disruptions": disruptions_update,
 					"timestamp": asyncio.get_event_loop().time()
 				})
 				

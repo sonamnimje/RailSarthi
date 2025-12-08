@@ -173,9 +173,10 @@ const HaltTooltip = ({ active, payload }: any) => {
 type Props = {
 	title?: string
 	height?: number
+	endpoint?: string
 }
 
-export default function ScheduleTimeDistanceChart({ title = 'Timetable Time-Distance Chart', height = 520 }: Props) {
+export default function ScheduleTimeDistanceChart({ title = 'Timetable Time-Distance Chart', height = 520, endpoint = '/api/time-distance/schedule' }: Props) {
 	const [data, setData] = useState<ApiResponse | null>(MOCK_SCHEDULE)
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -186,7 +187,7 @@ export default function ScheduleTimeDistanceChart({ title = 'Timetable Time-Dist
 	useEffect(() => {
 		let alive = true
 		setLoading(true)
-		fetch('/api/time-distance/schedule')
+		fetch(endpoint)
 			.then(async (res) => {
 				if (!res.ok) throw new Error(await res.text())
 				return res.json()
@@ -204,7 +205,7 @@ export default function ScheduleTimeDistanceChart({ title = 'Timetable Time-Dist
 		return () => {
 			alive = false
 		}
-	}, [reloadToken])
+	}, [reloadToken, endpoint])
 
 	const stationTickMap = useMemo(() => {
 		if (!data) return {}

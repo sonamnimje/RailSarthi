@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { LogOut, Menu, X } from 'lucide-react'
 import NotificationsPage from './Notifications'
-import { useZoneFilter } from '../lib/ZoneFilterContext'
 
 export default function Layout() {
 	const navigate = useNavigate()
@@ -10,16 +9,10 @@ export default function Layout() {
 	const bgClass = 'bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50'
 	const [isMenuOpen, setIsMenuOpen] = useState(false)
 	const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
-	const { selectedZone, divisionMeta, resetScope } = useZoneFilter()
-	const scopeLabel = selectedZone ? `${selectedZone}${divisionMeta ? ` • ${divisionMeta.division}` : ''}` : 'All zones'
-	
-	// Pages where scope selector should be shown
-	const pagesWithScope = ['/app/dashboard', '/app/logs', '/app/reports', '/app/overrides']
-	// Only show scope selector when on allowed pages AND a zone is selected
-	const shouldShowScope = pagesWithScope.includes(location.pathname) && selectedZone !== null
 	const navItems = [
 		{ to: '/app/dashboard', label: 'Dashboard' },
 		{ to: '/app/logs', label: 'Logs' },
+		{ to: '/app/simulation', label: 'Simulation' },
 		{ to: '/app/overrides', label: 'Overrides' },
 		{ to: '/app/reports', label: 'Reports' },
 		{ to: '/app/settings', label: 'Settings' },
@@ -65,22 +58,6 @@ export default function Layout() {
 						))}
 					</nav>
 					<div className="flex items-center gap-3">
-						{shouldShowScope && (
-							<div className="hidden md:flex items-center gap-2 rounded-full bg-blue-100/60 px-3 py-1 text-sm text-blue-900 border border-blue-200">
-								<span className="font-semibold uppercase tracking-wide text-xs text-blue-700">Scope</span>
-								<span className="font-medium">{scopeLabel}</span>
-								{selectedZone && (
-									<button
-										type="button"
-										onClick={resetScope}
-										className="text-xs text-blue-700 hover:text-blue-900 transition-colors"
-										title="Clear zone selection"
-									>
-										Clear
-									</button>
-								)}
-							</div>
-						)}
 						<button
 							type="button"
 							className="inline-flex items-center justify-center rounded-lg border border-blue-100 bg-white p-2 text-blue-700 shadow-sm transition hover:bg-blue-50 hover:text-blue-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 md:hidden"
@@ -112,24 +89,6 @@ export default function Layout() {
 					className={`md:hidden ${isMenuOpen ? 'max-h-96 opacity-100' : 'pointer-events-none max-h-0 opacity-0'} origin-top bg-white text-blue-900 shadow-lg transition-all duration-200 ease-out`}
 				>
 					<div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 pb-4 pt-0 sm:px-6 lg:px-8">
-						{shouldShowScope && (
-							<div className="flex items-center justify-between rounded-xl bg-blue-50 px-3 py-2 text-sm">
-								<div className="text-blue-900 font-semibold">Scope</div>
-								<div className="text-blue-700">{scopeLabel}</div>
-								{selectedZone && (
-									<button
-										type="button"
-										onClick={() => {
-											resetScope()
-											setIsMenuOpen(false)
-										}}
-										className="text-xs text-blue-600 underline"
-									>
-										Clear
-									</button>
-								)}
-							</div>
-						)}
 						{navItems.map((item) => (
 							<NavLink
 								key={item.to}

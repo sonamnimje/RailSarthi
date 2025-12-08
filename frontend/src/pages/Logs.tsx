@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchLiveTrains as fetchLiveTrainsApi, type LiveTrain } from '../lib/api'
-import { useZoneFilter, ensureDivisionOrDefault } from '../lib/ZoneFilterContext'
 import { useRealTimeData } from '../lib/RealTimeDataContext'
 
 export default function LogsPage() {
@@ -13,8 +12,6 @@ export default function LogsPage() {
   const [error, setError] = useState<string | null>(null)
   const [apiStation, setApiStation] = useState<string | null>(null)
   const [totalTrains, setTotalTrains] = useState<number | null>(null)
-  const { selectedZone, selectedDivisionKey, divisionMeta, stationCode, setDivisionKey } = useZoneFilter()
-  const [isZoneScoped, setIsZoneScoped] = useState(false)
 
   // ✅ Normalize times like "36:35" → "12:35 (+1d)"
   const normalizeTime = (time: string | number | null | undefined) => {
@@ -77,33 +74,9 @@ export default function LogsPage() {
     }
   }, [realTimeTrains, station])
 
-  useEffect(() => {
-    if (!selectedZone) {
-      setIsZoneScoped(false)
-      return
-    }
-    ensureDivisionOrDefault(selectedZone, selectedDivisionKey, setDivisionKey)
-    if (!stationCode) {
-      setIsZoneScoped(false)
-      return
-    }
-    const normalized = stationCode.toUpperCase()
-    setIsZoneScoped(true)
-    if (station !== normalized) {
-      setStation(normalized)
-    }
-  }, [selectedZone, selectedDivisionKey, stationCode, station, setDivisionKey])
-
   return (
     <div className="p-6 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 min-h-screen">
       <h2 className="text-3xl font-bold mb-6 text-gray-800">🚉 Live Train Logs</h2>
-      {selectedZone && (
-        <div className="mb-4 rounded-lg bg-blue-100 border border-blue-200 text-blue-900 text-sm px-4 py-3">
-          Viewing trains for <span className="font-semibold">{selectedZone}</span>
-          {divisionMeta && <span className="font-semibold">{` • ${divisionMeta.division}`}</span>}
-          {stationCode && <span>{` (station ${stationCode.toUpperCase()})`}</span>}
-        </div>
-      )}
 
       {/* 🔍 Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -114,11 +87,7 @@ export default function LogsPage() {
             onChange={(e) => setStation(e.target.value.toUpperCase())}
             placeholder="e.g. NDLS"
             className="border border-gray-300 rounded px-3 py-2 w-full"
-            disabled={isZoneScoped}
           />
-          {isZoneScoped && (
-            <p className="text-xs text-blue-700 mt-1">Locked to dashboard zone selection.</p>
-          )}
         </div>
 
         <div>

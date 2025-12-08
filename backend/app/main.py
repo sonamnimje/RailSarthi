@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .api.routes import ingest, optimizer, simulator, overrides, ws, users, reports, train_logs, train_live, weather, train_realtime, ai_routes
 from .api.routes import live_routes, weather_routes
-from .api.routes import recommendations, digital_twin
+from .api.routes import recommendations, digital_twin, graph_routes
 from .db.session import engine, SessionLocal, test_connection
 from .db.models import Base
 from .db import models_sim  # Import to register OverrideLog model
@@ -70,6 +70,7 @@ def create_app() -> FastAPI:
 	app.include_router(ai_routes.router)  # exposes /api/ai/* endpoints
 	app.include_router(live_routes.router)  # exposes /api/live/* endpoints
 	app.include_router(weather_routes.router)  # exposes /api/weather/* endpoints
+	app.include_router(graph_routes.router)  # time-distance graph + KPIs
 	# Recommendations API
 	app.include_router(recommendations.router, prefix="/api/recommendations", tags=["recommendations"])
 	# Digital Twin API

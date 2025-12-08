@@ -1,8 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchDigitalTwinMap, fetchDigitalTwinPositions, type DigitalTwinMapData, type DigitalTwinPosition } from '../lib/api';
+import { fetchDigitalTwinMap, fetchDigitalTwinPositions, fetchDigitalTwinDisruptions, type DigitalTwinMapData, type DigitalTwinPosition, type DigitalTwinDisruption, type ComprehensiveKPIs } from '../lib/api';
+import KPIPanel from './KPIPanel';
+import WhatIfScenarioPanel from './WhatIfScenarioPanel';
 
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -21,9 +23,16 @@ interface RailwaySchematicMapProps {
 interface TrainPosition extends DigitalTwinPosition {
 	lat?: number;
 	lon?: number;
+	rerouted?: boolean;
+	alternativeRoute?: string[];
+	originalSection?: string;
 }
 
 const getTrainTypeColor = (trainType?: string, status?: string): string => {
+	if (status === 'REROUTED') return '#8b5cf6'; // Purple for rerouted
+	if (status === 'QUEUED') return '#f97316'; // Orange for queued (waiting)
+	if (status === 'RESTRICTED') return '#f59e0b'; // Amber for restricted speed (signal failure)
+	if (status === 'BLOCKED') return '#f59e0b'; // Amber for blocked
 	if (status === 'STOPPED') return '#9ca3af'; // Grey for stopped
 	if (status === 'DELAYED') return '#ef4444'; // Red for delayed
 	
@@ -51,6 +60,27 @@ const getTrainTypeColor = (trainType?: string, status?: string): string => {
 	return '#9ca3af';
 };
 
+const getDisruptionColor = (type: string, severity: string): string => {
+	const typeLower = type.toLowerCase();
+	
+	if (typeLower.includes('signal')) {
+		return severity === 'high' ? '#f59e0b' : '#fbbf24'; // Amber/Orange for signal failures
+	}
+	if (typeLower.includes('track') || typeLower.includes('block')) {
+		return severity === 'high' ? '#ef4444' : '#f87171'; // Red for track blocks
+	}
+	if (typeLower.includes('weather')) {
+		return severity === 'high' ? '#3b82f6' : '#60a5fa'; // Blue for weather
+	}
+	
+	// Default based on severity
+	return severity === 'high' ? '#ef4444' : severity === 'medium' ? '#f59e0b' : '#84cc16';
+};
+
+const getDisruptionOpacity = (severity: string): number => {
+	return severity === 'high' ? 0.7 : severity === 'medium' ? 0.5 : 0.3;
+};
+
 // Custom component to fit map bounds
 function FitBounds({ stations }: { stations: Array<{ lat: number; lon: number }> }) {
 	const map = useMap();
@@ -68,6 +98,11 @@ function FitBounds({ stations }: { stations: Array<{ lat: number; lon: number }>
 export default function RailwaySchematicMap({ division, selectedTrain, onTrainClick }: RailwaySchematicMapProps) {
 	const [mapData, setMapData] = useState<DigitalTwinMapData | null>(null);
 	const [trainPositions, setTrainPositions] = useState<TrainPosition[]>([]);
+	const [disruptions, setDisruptions] = useState<DigitalTwinDisruption[]>([]);
+	const [impactMetrics, setImpactMetrics] = useState<any>(null);
+	const [kpis, setKpis] = useState<ComprehensiveKPIs | null>(null);
+	const [showKPIPanel, setShowKPIPanel] = useState(false);
+	const [showScenarioPanel, setShowScenarioPanel] = useState(false);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [stationsMap, setStationsMap] = useState<Map<string, { lat: number; lon: number; name: string }>>(new Map());
@@ -76,19 +111,23 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 	// Helper function to setup fallback data
 	const setupFallbackData = () => {
 		const fallbackData: DigitalTwinMapData = {
-			division: 'mumbai',
+			division: 'itarsi_bhopal',
 			stations: [
-				{ stationCode: 'MMCT', stationName: 'Mumbai Central', lat: 19.0760, lon: 72.8777 },
-				{ stationCode: 'CSTM', stationName: 'Mumbai CST', lat: 18.9400, lon: 72.8354 },
-				{ stationCode: 'DR', stationName: 'Dadar', lat: 19.0176, lon: 72.8562 },
-				{ stationCode: 'KYN', stationName: 'Kalyan', lat: 19.2437, lon: 73.1355 },
-				{ stationCode: 'TNA', stationName: 'Thane', lat: 19.1947, lon: 72.9706 },
+				{ stationCode: 'ET', stationName: 'Itarsi Jn (ET)', lat: 22.6060, lon: 77.7590 },
+				{ stationCode: 'NDPM', stationName: 'Narmadapuram (NDPM)', lat: 22.7440, lon: 77.7275 },
+				{ stationCode: 'ODG', stationName: 'Obaidullaganj (ODG)', lat: 22.9930, lon: 77.5850 },
+				{ stationCode: 'MDDP', stationName: 'Mandideep (MDDP)', lat: 23.0825, lon: 77.5290 },
+				{ stationCode: 'MSO', stationName: 'Misrod (MSO)', lat: 23.1789, lon: 77.4648 },
+				{ stationCode: 'RKMP', stationName: 'Rani Kamalapati (RKMP)', lat: 23.2355, lon: 77.4332 },
+				{ stationCode: 'BPL', stationName: 'Bhopal Jn (BPL)', lat: 23.2599, lon: 77.4029 },
 			],
 			sections: [
-				{ section_id: 'MMCT-CSTM', from: 'MMCT', to: 'CSTM' },
-				{ section_id: 'MMCT-DR', from: 'MMCT', to: 'DR' },
-				{ section_id: 'DR-KYN', from: 'DR', to: 'KYN' },
-				{ section_id: 'KYN-TNA', from: 'KYN', to: 'TNA' },
+				{ section_id: 'ET-NDPM', from: 'ET', to: 'NDPM' },
+				{ section_id: 'NDPM-ODG', from: 'NDPM', to: 'ODG' },
+				{ section_id: 'ODG-MDDP', from: 'ODG', to: 'MDDP' },
+				{ section_id: 'MDDP-MSO', from: 'MDDP', to: 'MSO' },
+				{ section_id: 'MSO-RKMP', from: 'MSO', to: 'RKMP' },
+				{ section_id: 'RKMP-BPL', from: 'RKMP', to: 'BPL' },
 			]
 		};
 		
@@ -211,6 +250,15 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 			try {
 				const response = await fetchDigitalTwinPositions(division);
 				if (mounted && response.trains) {
+					// Update impact metrics
+					if (response.impact_metrics) {
+						setImpactMetrics(response.impact_metrics);
+					}
+					// Update KPIs
+					if (response.kpis) {
+						setKpis(response.kpis);
+					}
+					
 					// Calculate actual lat/lon for trains
 					const positions: TrainPosition[] = response.trains.map(train => {
 						const section = sectionsMap.get(train.position.sectionId);
@@ -226,10 +274,13 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 							return {
 								...train,
 								lat,
-								lon
+								lon,
+								rerouted: (train as any).rerouted || false,
+								alternativeRoute: (train as any).alternativeRoute || null,
+								originalSection: (train as any).originalSection || null
 							};
 						}
-						return train;
+						return train as TrainPosition;
 					});
 					
 					setTrainPositions(positions);
@@ -249,6 +300,36 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 		};
 	}, [mapData, division, sectionsMap]);
 
+	// Load disruptions
+	useEffect(() => {
+		if (!mapData) return;
+		
+		let mounted = true;
+		let intervalId: ReturnType<typeof setInterval>;
+		
+		const loadDisruptions = async () => {
+			try {
+				const response = await fetchDigitalTwinDisruptions(division);
+				if (mounted && response.disruptions) {
+					// Filter only active disruptions
+					const activeDisruptions = response.disruptions.filter(d => d.status === 'active');
+					setDisruptions(activeDisruptions);
+				}
+			} catch (err) {
+				console.error('Failed to load disruptions:', err);
+			}
+		};
+		
+		loadDisruptions();
+		// Update every 5 seconds for disruptions
+		intervalId = setInterval(loadDisruptions, 5000);
+		
+		return () => {
+			mounted = false;
+			if (intervalId) clearInterval(intervalId);
+		};
+	}, [mapData, division]);
+
 	// WebSocket connection for real-time updates
 	useEffect(() => {
 		if (!division) return;
@@ -261,7 +342,7 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 			console.log('WebSocket connected for live train updates');
 		};
 
-		ws.onmessage = (event) => {
+					ws.onmessage = (event) => {
 			try {
 				const data = JSON.parse(event.data);
 				if (data.type === 'live_update' && data.trains) {
@@ -286,13 +367,22 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 									progress
 								},
 								lat,
-								lon
+								lon,
+								rerouted: t.rerouted || false,
+								alternativeRoute: t.alternativeRoute || null,
+								originalSection: t.originalSection || null
 							};
 						}
 						return null;
 					}).filter(Boolean) as TrainPosition[];
 					
 					setTrainPositions(positions);
+				}
+				
+				// Update disruptions if provided in WebSocket message
+				if (data.type === 'live_update' && data.disruptions) {
+					const activeDisruptions = data.disruptions.filter((d: DigitalTwinDisruption) => d.status === 'active');
+					setDisruptions(activeDisruptions);
 				}
 			} catch (err) {
 				console.error('Failed to parse WebSocket message:', err);
@@ -315,7 +405,7 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center h-full" style={{ backgroundColor: '#bfdbfe', minHeight: '600px' }}>
-				<div className="text-gray-700 text-lg">Loading Central Railway map...</div>
+				<div className="text-gray-700 text-lg">Loading Itarsi–Bhopal map...</div>
 			</div>
 		);
 	}
@@ -337,19 +427,123 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 	}
 
 	const stations = Array.from(stationsMap.values());
+	const mapCenter = useMemo<[number, number]>(() => {
+		if (stations.length > 0) {
+			const avgLat = stations.reduce((sum, s) => sum + s.lat, 0) / stations.length;
+			const avgLon = stations.reduce((sum, s) => sum + s.lon, 0) / stations.length;
+			return [avgLat, avgLon];
+		}
+		return [22.9, 77.55];
+	}, [stations]);
 
 	return (
 		<div className="w-full h-full relative" style={{ backgroundColor: '#bfdbfe', minHeight: '600px', height: '100%' }}>
-			{/* Central Railway Title */}
+			{/* Section title */}
 			<div className="absolute top-4 left-4 z-[1000] bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
-				<div className="font-bold text-lg">CENTRAL RAILWAY</div>
-				<div className="text-xs opacity-90">Train Status Map</div>
+				<div className="font-bold text-lg">Itarsi → Bhopal Section</div>
+				<div className="text-xs opacity-90">Live twin map (WCR)</div>
 			</div>
+			
+			{/* Control Buttons */}
+			<div className="absolute bottom-4 left-4 z-[1000] flex flex-col gap-2">
+				<button
+					onClick={() => setShowKPIPanel(!showKPIPanel)}
+					className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-lg font-semibold text-sm flex items-center gap-2"
+				>
+					📊 {showKPIPanel ? 'Hide' : 'Show'} KPIs
+				</button>
+				<button
+					onClick={() => setShowScenarioPanel(!showScenarioPanel)}
+					className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow-lg font-semibold text-sm flex items-center gap-2"
+				>
+					🎯 {showScenarioPanel ? 'Hide' : 'Show'} Scenarios
+				</button>
+			</div>
+			
+			{/* KPI Panel */}
+			{showKPIPanel && kpis && (
+				<div className="absolute bottom-20 left-4 z-[1000] w-96">
+					<KPIPanel kpis={kpis} />
+				</div>
+			)}
+			
+			{/* What-If Scenario Panel */}
+			{showScenarioPanel && (
+				<div className="absolute bottom-20 left-4 z-[1000] w-[500px] max-h-[700px]">
+					<WhatIfScenarioPanel
+						division={division}
+						onScenarioApplied={(scenario) => {
+							console.log('Scenario applied:', scenario);
+							// Refresh disruptions and positions
+							setTimeout(() => {
+								window.location.reload();
+							}, 1000);
+						}}
+					/>
+				</div>
+			)}
+			
+			{/* Impact Metrics Panel */}
+			{impactMetrics && impactMetrics.active_disruptions > 0 && (
+				<div className="absolute top-4 right-4 z-[1000] bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200 max-w-xs">
+					<div className="font-bold text-sm text-red-700 mb-2">📊 System Impact</div>
+					<div className="space-y-2 text-xs">
+						<div className="flex justify-between">
+							<span className="text-gray-600">Affected Trains:</span>
+							<span className="font-semibold">{impactMetrics.affected_trains}/{impactMetrics.total_trains}</span>
+						</div>
+						<div className="flex justify-between">
+							<span className="text-gray-600">In Queue:</span>
+							<span className="font-semibold text-orange-600">{impactMetrics.trains_in_queue}</span>
+						</div>
+						<div className="flex justify-between">
+							<span className="text-gray-600">Rerouted:</span>
+							<span className="font-semibold text-purple-600">{impactMetrics.trains_rerouted}</span>
+						</div>
+						<div className="border-t pt-2 mt-2">
+							<div className="flex justify-between mb-1">
+								<span className="text-gray-600">Passenger Delay:</span>
+								<span className="font-semibold text-red-600">{impactMetrics.avg_passenger_delay_minutes?.toFixed(1)} min</span>
+							</div>
+							<div className="flex justify-between">
+								<span className="text-gray-600">Freight Delay:</span>
+								<span className="font-semibold text-amber-600">{impactMetrics.avg_freight_delay_minutes?.toFixed(1)} min</span>
+							</div>
+						</div>
+						<div className="border-t pt-2 mt-2">
+							<div className="flex justify-between">
+								<span className="text-gray-600">Throughput Impact:</span>
+								<span className="font-semibold text-red-600">-{impactMetrics.throughput_impact_percent}%</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+			
+			{/* Disruption legend */}
+			{disruptions.length > 0 && (
+				<div className={`absolute ${impactMetrics && impactMetrics.active_disruptions > 0 ? 'top-48' : 'top-4'} right-4 z-[1000] bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200`}>
+					<div className="font-bold text-sm text-gray-800 mb-2">⚠️ Active Disruptions</div>
+					<div className="space-y-1 text-xs">
+						{disruptions.map((d) => (
+							<div key={d.id} className="flex items-center gap-2">
+								<div 
+									className="w-3 h-3 rounded-full animate-pulse"
+									style={{ backgroundColor: getDisruptionColor(d.type, d.severity) }}
+								></div>
+								<span className="text-gray-700">
+									{d.startStation && d.endStation ? `${d.startStation}-${d.endStation}` : d.sectionId || d.type}
+								</span>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
 			
 			<MapContainer
 				key={`map-${division}-${mapData?.stations.length || 0}`}
-				center={[19.0760, 72.8777]} // Mumbai coordinates (Central Railway)
-				zoom={10}
+				center={mapCenter}
+				zoom={9}
 				style={{ height: '100%', width: '100%', minHeight: '600px', backgroundColor: '#bfdbfe' }}
 				zoomControl={true}
 				attributionControl={false}
@@ -366,22 +560,309 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 				<FitBounds stations={stations} />
 				
 				{/* Draw railway sections (tracks) - styled like Indian Railway Network Map */}
-				{Array.from(sectionsMap.entries()).map(([sectionId, section]) => (
-					<Polyline
-						key={sectionId}
-						positions={[
-							[section.from.lat, section.from.lon],
-							[section.to.lat, section.to.lon]
-						]}
-						pathOptions={{
-							color: '#dc2626', // Red for trunk routes (electrified)
-							weight: 5,
-							opacity: 0.9,
-							lineCap: 'round',
-							lineJoin: 'round'
-						}}
-					/>
-				))}
+				{Array.from(sectionsMap.entries()).map(([sectionId, section]) => {
+					// Check if this section has an active disruption
+					const sectionDisruption = disruptions.find(d => {
+						// Direct section ID match
+						if (d.sectionId === sectionId) return true;
+						
+						// Match by station codes
+						if (d.startStation && d.endStation && mapData) {
+							const sectionData = mapData.sections.find(s => s.section_id === sectionId);
+							if (sectionData) {
+								const matchesForward = sectionData.from === d.startStation && sectionData.to === d.endStation;
+								const matchesReverse = sectionData.from === d.endStation && sectionData.to === d.startStation;
+								return matchesForward || matchesReverse;
+							}
+						}
+						return false;
+					});
+					
+					const hasDisruption = !!sectionDisruption;
+					const baseColor = '#dc2626'; // Red for trunk routes (electrified)
+					const disruptionColor = sectionDisruption 
+						? getDisruptionColor(sectionDisruption.type, sectionDisruption.severity)
+						: baseColor;
+					
+					return (
+						<Polyline
+							key={sectionId}
+							positions={[
+								[section.from.lat, section.from.lon],
+								[section.to.lat, section.to.lon]
+							]}
+							pathOptions={{
+								color: disruptionColor,
+								weight: hasDisruption ? 8 : 5,
+								opacity: hasDisruption 
+									? getDisruptionOpacity(sectionDisruption.severity)
+									: 0.9,
+								lineCap: 'round',
+								lineJoin: 'round'
+							}}
+						>
+							{hasDisruption && sectionDisruption && (
+								<Popup>
+									<div className="font-bold text-base text-red-700">⚠️ Disruption Active</div>
+									<div className="text-sm font-semibold mt-1">{sectionDisruption.description}</div>
+									
+									{/* Operational Effects - Freight & Passenger */}
+									{sectionDisruption.operational_effects && (
+										<div className="mt-2 space-y-2">
+											{sectionDisruption.operational_effects.freight && (
+												<div className="p-2 bg-blue-50 border border-blue-200 rounded">
+													<div className="text-xs font-semibold text-blue-800 mb-1">🚚 Freight Effects:</div>
+													{sectionDisruption.operational_effects.freight.action && (
+														<div className="text-xs text-blue-700 mb-1">
+															<span className="font-semibold">Action:</span> {sectionDisruption.operational_effects.freight.action.replace(/_/g, ' ')}
+														</div>
+													)}
+													{sectionDisruption.operational_effects.freight.speed_kmph !== undefined && (
+														<div className="text-xs text-blue-700 mb-1">
+															<span className="font-semibold">Speed:</span> {sectionDisruption.operational_effects.freight.speed_kmph} km/h
+														</div>
+													)}
+													{sectionDisruption.operational_effects.freight.delay_minutes && (
+														<div className="text-xs text-blue-700">
+															<span className="font-semibold">Delay:</span> ~{sectionDisruption.operational_effects.freight.delay_minutes} min
+														</div>
+													)}
+												</div>
+											)}
+											{sectionDisruption.operational_effects.passenger && (
+												<div className="p-2 bg-green-50 border border-green-200 rounded">
+													<div className="text-xs font-semibold text-green-800 mb-1">🚆 Passenger Effects:</div>
+													{sectionDisruption.operational_effects.passenger.action && (
+														<div className="text-xs text-green-700 mb-1">
+															<span className="font-semibold">Action:</span> {sectionDisruption.operational_effects.passenger.action.replace(/_/g, ' ')}
+														</div>
+													)}
+													{sectionDisruption.operational_effects.passenger.speed_kmph !== undefined && (
+														<div className="text-xs text-green-700 mb-1">
+															<span className="font-semibold">Speed:</span> {sectionDisruption.operational_effects.passenger.speed_kmph} km/h
+														</div>
+													)}
+													{sectionDisruption.operational_effects.passenger.delay_minutes && (
+														<div className="text-xs text-green-700">
+															<span className="font-semibold">Delay:</span> ~{sectionDisruption.operational_effects.passenger.delay_minutes} min
+														</div>
+													)}
+												</div>
+											)}
+										</div>
+									)}
+									
+									{/* Detailed operational impact for signal failures */}
+									{sectionDisruption.type === 'signal_failure' && sectionDisruption.operational_mode === 'FAIL_SAFE' && (
+										<div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded">
+											<div className="text-xs font-semibold text-amber-800 mb-1">🔴 Fail-Safe Mode Active</div>
+											{sectionDisruption.requires_ta912_authority && (
+												<div className="text-xs text-amber-700 mb-1">
+													<span className="font-semibold">TA-912 Authority:</span> Required
+												</div>
+											)}
+											{sectionDisruption.restricted_speed_kmph && (
+												<div className="text-xs text-amber-700 mb-1">
+													<span className="font-semibold">Restricted Speed:</span> {sectionDisruption.restricted_speed_kmph} km/h
+												</div>
+											)}
+											{sectionDisruption.block_clearance_time_min && sectionDisruption.normal_block_clearance_time_min && (
+												<div className="text-xs text-amber-700 mb-1">
+													<span className="font-semibold">Block Clearance:</span> {sectionDisruption.normal_block_clearance_time_min} min → {sectionDisruption.block_clearance_time_min} min
+												</div>
+											)}
+											{sectionDisruption.throughput_drop_percent && (
+												<div className="text-xs text-amber-700 mb-1">
+													<span className="font-semibold">Throughput Drop:</span> {sectionDisruption.throughput_drop_percent}%
+												</div>
+											)}
+											{sectionDisruption.passenger_delay_minutes && (
+												<div className="text-xs text-amber-700">
+													<span className="font-semibold">Passenger Delay:</span> ~{sectionDisruption.passenger_delay_minutes} min
+												</div>
+											)}
+											{sectionDisruption.freight_delay_minutes && (
+												<div className="text-xs text-amber-700">
+													<span className="font-semibold">Freight Delay:</span> ~{sectionDisruption.freight_delay_minutes} min
+												</div>
+											)}
+										</div>
+									)}
+									
+									<div className="text-xs text-gray-600 mt-2">
+										<span className="font-semibold">Type:</span> {sectionDisruption.type.replace('_', ' ').toUpperCase()}
+									</div>
+									<div className="text-xs text-gray-600">
+										<span className="font-semibold">Severity:</span> {sectionDisruption.severity.toUpperCase()}
+									</div>
+									{sectionDisruption.startStation && sectionDisruption.endStation && (
+										<div className="text-xs text-gray-600">
+											<span className="font-semibold">Section:</span> {sectionDisruption.startStation} → {sectionDisruption.endStation}
+										</div>
+									)}
+									<div className="text-xs text-gray-600">
+										<span className="font-semibold">Duration:</span> {Math.round(sectionDisruption.durationSeconds / 60)} min
+									</div>
+									{sectionDisruption.description_detail && (
+										<div className="text-xs text-gray-500 mt-2 italic">
+											{sectionDisruption.description_detail}
+										</div>
+									)}
+								</Popup>
+							)}
+						</Polyline>
+					);
+				})}
+				
+				{/* Draw disruption markers/overlays */}
+				{disruptions.map((disruption) => {
+					if (!disruption.startStation || !disruption.endStation) return null;
+					
+					const startStation = stationsMap.get(disruption.startStation);
+					const endStation = stationsMap.get(disruption.endStation);
+					if (!startStation || !endStation) return null;
+					
+					// Place marker at midpoint of the section
+					const midLat = (startStation.lat + endStation.lat) / 2;
+					const midLon = (startStation.lon + endStation.lon) / 2;
+					
+					const disruptionColor = getDisruptionColor(disruption.type, disruption.severity);
+					
+					return (
+						<CircleMarker
+							key={`disruption-${disruption.id}`}
+							center={[midLat, midLon]}
+							radius={disruption.type === 'signal_failure' ? 14 : 12}
+							pathOptions={{
+								fillColor: disruptionColor,
+								fillOpacity: 0.8,
+								color: disruption.type === 'signal_failure' ? '#f59e0b' : '#ffffff',
+								weight: disruption.type === 'signal_failure' ? 3 : 2
+							}}
+						>
+							<Popup className="max-w-xs">
+								<div className="font-bold text-base text-red-700">⚠️ Active Disruption</div>
+								<div className="text-sm font-semibold mt-1">{disruption.description}</div>
+								
+								{/* Operational Effects - Freight & Passenger */}
+								{disruption.operational_effects && (
+									<div className="mt-2 space-y-2">
+										{disruption.operational_effects.freight && (
+											<div className="p-2 bg-blue-50 border border-blue-200 rounded">
+												<div className="text-xs font-semibold text-blue-800 mb-1">🚚 Freight Effects:</div>
+												{disruption.operational_effects.freight.action && (
+													<div className="text-xs text-blue-700 mb-1">
+														<span className="font-semibold">Action:</span> {disruption.operational_effects.freight.action.replace(/_/g, ' ')}
+													</div>
+												)}
+												{disruption.operational_effects.freight.speed_kmph !== undefined && (
+													<div className="text-xs text-blue-700 mb-1">
+														<span className="font-semibold">Speed:</span> {disruption.operational_effects.freight.speed_kmph} km/h
+													</div>
+												)}
+												{disruption.operational_effects.freight.delay_minutes && (
+													<div className="text-xs text-blue-700">
+														<span className="font-semibold">Delay:</span> ~{disruption.operational_effects.freight.delay_minutes} min
+													</div>
+												)}
+												{disruption.operational_effects.freight.reroute_to_alternate_loops && (
+													<div className="text-xs text-blue-700 mt-1">
+														<span className="font-semibold">Reroute:</span> To alternate loops
+													</div>
+												)}
+											</div>
+										)}
+										{disruption.operational_effects.passenger && (
+											<div className="p-2 bg-green-50 border border-green-200 rounded">
+												<div className="text-xs font-semibold text-green-800 mb-1">🚆 Passenger Effects:</div>
+												{disruption.operational_effects.passenger.action && (
+													<div className="text-xs text-green-700 mb-1">
+														<span className="font-semibold">Action:</span> {disruption.operational_effects.passenger.action.replace(/_/g, ' ')}
+													</div>
+												)}
+												{disruption.operational_effects.passenger.speed_kmph !== undefined && (
+													<div className="text-xs text-green-700 mb-1">
+														<span className="font-semibold">Speed:</span> {disruption.operational_effects.passenger.speed_kmph} km/h
+													</div>
+												)}
+												{disruption.operational_effects.passenger.delay_minutes && (
+													<div className="text-xs text-green-700">
+														<span className="font-semibold">Delay:</span> ~{disruption.operational_effects.passenger.delay_minutes} min
+													</div>
+												)}
+												{disruption.operational_effects.passenger.reroute_enabled && (
+													<div className="text-xs text-green-700 mt-1">
+														<span className="font-semibold">Reroute:</span> Enabled
+													</div>
+												)}
+											</div>
+										)}
+									</div>
+								)}
+								
+								{/* Detailed operational impact for signal failures */}
+								{disruption.type === 'signal_failure' && disruption.operational_mode === 'FAIL_SAFE' && (
+									<div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded">
+										<div className="text-xs font-semibold text-amber-800 mb-1">🔴 Fail-Safe Mode Active</div>
+										{disruption.requires_ta912_authority && (
+											<div className="text-xs text-amber-700 mb-1">
+												<span className="font-semibold">TA-912 Authority:</span> Required
+											</div>
+										)}
+										{disruption.restricted_speed_kmph && (
+											<div className="text-xs text-amber-700 mb-1">
+												<span className="font-semibold">Restricted Speed:</span> {disruption.restricted_speed_kmph} km/h
+											</div>
+										)}
+										{disruption.block_clearance_time_min && disruption.normal_block_clearance_time_min && (
+											<div className="text-xs text-amber-700 mb-1">
+												<span className="font-semibold">Block Clearance:</span> {disruption.normal_block_clearance_time_min} min → {disruption.block_clearance_time_min} min
+											</div>
+										)}
+										{disruption.throughput_drop_percent && (
+											<div className="text-xs text-amber-700 mb-1">
+												<span className="font-semibold">Throughput Drop:</span> {disruption.throughput_drop_percent}%
+											</div>
+										)}
+										{disruption.passenger_delay_minutes && (
+											<div className="text-xs text-amber-700">
+												<span className="font-semibold">Passenger Delay:</span> ~{disruption.passenger_delay_minutes} min
+											</div>
+										)}
+										{disruption.freight_delay_minutes && (
+											<div className="text-xs text-amber-700">
+												<span className="font-semibold">Freight Delay:</span> ~{disruption.freight_delay_minutes} min
+											</div>
+										)}
+									</div>
+								)}
+								
+								<div className="text-xs text-gray-600 mt-2">
+									<span className="font-semibold">Type:</span> {disruption.type.replace('_', ' ').toUpperCase()}
+								</div>
+								<div className="text-xs text-gray-600">
+									<span className="font-semibold">Severity:</span> {disruption.severity.toUpperCase()}
+								</div>
+								{disruption.startStation && disruption.endStation && (
+									<div className="text-xs text-gray-600">
+										<span className="font-semibold">Section:</span> {disruption.startStation} → {disruption.endStation}
+									</div>
+								)}
+								<div className="text-xs text-gray-600">
+									<span className="font-semibold">Duration:</span> {Math.round(disruption.durationSeconds / 60)} min
+								</div>
+								<div className="text-xs text-gray-500 mt-1">
+									Started: {new Date(disruption.startTime).toLocaleTimeString()}
+								</div>
+								{disruption.description_detail && (
+									<div className="text-xs text-gray-500 mt-2 italic border-t pt-2">
+										{disruption.description_detail}
+									</div>
+								)}
+							</Popup>
+						</CircleMarker>
+					);
+				})}
 				
 				{/* Draw stations with icons */}
 				{mapData.stations.map((station) => {
@@ -389,8 +870,7 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 					if (!stationData) return null;
 					
 					// Determine if it's a major station
-					const isMajor = station.stationCode === 'MMCT' || station.stationCode === 'CSTM' || 
-					                station.stationCode === 'DR' || station.stationCode === 'KYN';
+					const isMajor = ['ET', 'RKMP', 'BPL'].includes(station.stationCode);
 					
 					// Create custom station icon
 					const stationIcon = L.divIcon({
@@ -428,7 +908,7 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 							<Popup>
 								<div className="font-semibold text-base">{stationData.name}</div>
 								<div className="text-sm text-gray-600">{station.stationCode}</div>
-								<div className="text-xs text-gray-500 mt-1">Central Railway</div>
+								<div className="text-xs text-gray-500 mt-1">Itarsi–Bhopal corridor</div>
 							</Popup>
 						</Marker>
 					);
@@ -460,12 +940,49 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 					);
 				})}
 				
+				{/* Draw alternative routes for rerouted trains */}
+				{trainPositions
+					.filter(t => t.rerouted && t.alternativeRoute && t.alternativeRoute.length > 1)
+					.map((train) => {
+						if (!train.alternativeRoute) return null;
+						
+						// Draw alternative route as dashed line
+						const routePoints: [number, number][] = [];
+						for (let i = 0; i < train.alternativeRoute.length - 1; i++) {
+							const fromStation = stationsMap.get(train.alternativeRoute[i]);
+							const toStation = stationsMap.get(train.alternativeRoute[i + 1]);
+							if (fromStation && toStation) {
+								routePoints.push([fromStation.lat, fromStation.lon]);
+								routePoints.push([toStation.lat, toStation.lon]);
+							}
+						}
+						
+						if (routePoints.length < 2) return null;
+						
+						return (
+							<Polyline
+								key={`alt-route-${train.trainNo}`}
+								positions={routePoints}
+								pathOptions={{
+									color: '#8b5cf6', // Purple for alternative route
+									weight: 4,
+									opacity: 0.6,
+									dashArray: '10, 5',
+									lineCap: 'round',
+									lineJoin: 'round'
+								}}
+							/>
+						);
+					})}
+				
 				{/* Draw trains with color coding */}
 				{trainPositions.map((train) => {
 					if (!train.lat || !train.lon) return null;
 					
 					const color = getTrainTypeColor(train.trainType, train.status);
 					const isSelected = selectedTrain === train.trainNo;
+					const isRerouted = train.status === 'REROUTED' || train.rerouted;
+					const isQueued = train.status === 'QUEUED';
 					
 					// Determine train type for display
 					const typeUpper = (train.trainType || '').toUpperCase();
@@ -482,12 +999,12 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 						<CircleMarker
 							key={train.trainNo}
 							center={[train.lat, train.lon]}
-							radius={isSelected ? 14 : 12}
+							radius={isSelected ? 16 : isRerouted ? 14 : isQueued ? 13 : 12}
 							pathOptions={{
 								fillColor: color,
-								fillOpacity: 1,
-								color: '#ffffff',
-								weight: isSelected ? 3 : 2.5
+								fillOpacity: isQueued ? 0.8 : 1,
+								color: isRerouted ? '#8b5cf6' : isQueued ? '#f97316' : '#ffffff',
+								weight: isSelected ? 3 : isRerouted ? 3 : isQueued ? 2.5 : 2.5
 							}}
 							eventHandlers={{
 								click: () => {
@@ -500,6 +1017,16 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 							<Popup>
 								<div className="font-bold text-lg">{train.trainNo}</div>
 								<div className="text-sm font-medium">{train.trainName || 'Train'}</div>
+								{isRerouted && (
+									<div className="text-xs text-purple-600 font-semibold mt-1 flex items-center gap-1">
+										<span>🔄 REROUTED</span>
+									</div>
+								)}
+								{isQueued && (
+									<div className="text-xs text-orange-600 font-semibold mt-1 flex items-center gap-1">
+										<span>⏸️ QUEUED - Waiting for clearance</span>
+									</div>
+								)}
 								<div className="text-xs mt-1 flex items-center gap-1">
 									<span className="font-semibold">Type:</span>
 									<span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: color }}></span>
@@ -508,6 +1035,16 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 								<div className="text-xs">
 									<span className="font-semibold">Status:</span> {train.status || 'RUNNING'}
 								</div>
+								{isRerouted && train.alternativeRoute && (
+									<div className="text-xs text-purple-600 mt-1">
+										<span className="font-semibold">Alternative Route:</span> {train.alternativeRoute.join(' → ')}
+									</div>
+								)}
+								{isRerouted && train.originalSection && (
+									<div className="text-xs text-amber-600 mt-1">
+										<span className="font-semibold">Blocked Section:</span> {train.originalSection}
+									</div>
+								)}
 								{train.delay && train.delay > 0 && (
 									<div className="text-xs text-red-600 mt-1">
 										<span className="font-semibold">Delay:</span> {train.delay} min

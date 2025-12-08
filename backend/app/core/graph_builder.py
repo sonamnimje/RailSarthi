@@ -5,10 +5,12 @@ Builds NetworkX-based graph representation of railway network with stations, sec
 import networkx as nx
 import pandas as pd
 from typing import Dict, Any, List, Optional, Tuple
+from datetime import datetime, timedelta
 import logging
 from dataclasses import dataclass
 
 from app.services.division_loader import normalize_stations, normalize_sections
+from app.services.dataset_loader import load_time_distance_json
 
 logger = logging.getLogger(__name__)
 
@@ -320,5 +322,335 @@ class RailwayGraphBuilder:
             "edges": len(self.graph.edges),
             "nodes": len(self.graph.nodes),
             "is_connected": nx.is_strongly_connected(self.graph) if len(self.graph.nodes) > 0 else False
+        }
+
+
+# -----------------------------------------------------------------------------
+# Time-distance graph builder (Jabalpur → Itarsi)
+# -----------------------------------------------------------------------------
+
+@dataclass
+class Disruption:
+    """Represents a simulated disruption event."""
+    type: str
+    block_id: Optional[str] = None
+    train_id: Optional[str] = None
+    signal_id: Optional[str] = None
+    minutes: float = 0.0
+    speed_kmph: Optional[float] = None
+    km_offset: Optional[float] = None
+    reason: Optional[str] = None
+
+
+class TimeDistanceGraphBuilder:
+    """
+    Builds a time–distance graph for the Jabalpur → Itarsi section.
+
+    The builder consumes JSON datasets (stations, blocks, signals, trains, timetable)
+    and produces a list of timeline points that the frontend can plot directly.
+    """
+
+    def __init__(self, dataset: Optional[Dict[str, Any]] = None) -> None:
+        self.dataset = dataset or load_time_distance_json()
+        self.stations: Dict[str, Dict[str, Any]] = {
+            s["code"]: s for s in self.dataset.get("stations", [])
+        }
+        # Preserve physical order either via 'order' or km marker
+        self.station_order: List[Dict[str, Any]] = sorted(
+            self.stations.values(),
+            key=lambda s: (s.get("order", 0), s.get("km_marker", 0.0)),
+        )
+        self.blocks: Dict[str, Dict[str, Any]] = {
+            b["block_id"]: b for b in self.dataset.get("blocks", [])
+        }
+        self.block_by_pair: Dict[Tuple[str, str], Dict[str, Any]] = {
+            (b["start_station"], b["end_station"]): b for b in self.dataset.get("blocks", [])
+        }
+        self.signals_by_block: Dict[str, List[Dict[str, Any]]] = {}
+        for sig in self.dataset.get("signals", []):
+            self.signals_by_block.setdefault(sig["block_id"], []).append(sig)
+        for sig_list in self.signals_by_block.values():
+            sig_list.sort(key=lambda s: s.get("km_offset", 0.0))
+
+        self.timetable_by_train: Dict[str, List[Dict[str, Any]]] = {}
+        for row in self.dataset.get("timetable", []):
+            self.timetable_by_train.setdefault(row["train_id"], []).append(row)
+        for rows in self.timetable_by_train.values():
+            rows.sort(key=lambda r: self._time_to_minutes(r.get("departure") or r.get("arrival") or "00:00"))
+
+    def build(self, disruptions: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+        """
+        Build the full time–distance graph across all trains.
+
+        Args:
+            disruptions: Optional list of disruption dictionaries.
+
+        Returns:
+            Dict containing points and metadata for plotting.
+        """
+        disruption_objs = [self._normalize_disruption(d) for d in (disruptions or [])]
+        points: List[Dict[str, Any]] = []
+        train_summaries: List[Dict[str, Any]] = []
+
+        for train in self.dataset.get("trains", []):
+            train_id = train.get("train_id")
+            schedule = self.timetable_by_train.get(train_id, [])
+            if not train_id or not schedule:
+                continue
+
+            train_points, summary = self._simulate_train(train, schedule, disruption_objs)
+            points.extend(train_points)
+            train_summaries.append(summary)
+
+        # Sort points by time for clean plotting
+        points.sort(key=lambda p: (p["time"], p["train_id"]))
+
+        return {
+            "points": points,
+            "stations": self.station_order,
+            "blocks": list(self.blocks.values()),
+            "trains": train_summaries,
+        }
+
+    # ------------------------------------------------------------------ helpers
+    def _simulate_train(
+        self,
+        train: Dict[str, Any],
+        schedule: List[Dict[str, Any]],
+        disruptions: List[Disruption],
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """Simulate a single train and return plot points + summary."""
+        points: List[Dict[str, Any]] = []
+        train_id = train.get("train_id")
+        max_speed = float(train.get("max_speed_kmph", 90.0))
+        train_type = train.get("type", "Passenger")
+        direction = train.get("direction", "up")
+
+        # Seed with first departure time
+        start_entry = schedule[0]
+        current_time = self._parse_time(start_entry.get("departure") or "00:00")
+        current_distance = self._station_distance(start_entry["station_code"])
+
+        points.append(
+            self._point(
+                train_id,
+                current_time,
+                current_distance,
+                station=start_entry["station_code"],
+                event="departure",
+                train_type=train_type,
+                direction=direction,
+            )
+        )
+
+        total_distance = 0.0
+        total_run_minutes = 0.0
+        total_delay_minutes = 0.0
+
+        for idx in range(len(schedule) - 1):
+            origin = schedule[idx]
+            dest = schedule[idx + 1]
+            block = self._find_block(origin["station_code"], dest["station_code"])
+            if block is None:
+                # Skip if no block defined between these stations
+                continue
+
+            segment_distance = float(block.get("length_km", 0.0))
+            block_id = block.get("block_id")
+            base_speed = min(max_speed, float(block.get("max_speed_kmph", max_speed)))
+
+            # Apply dynamic speed reductions
+            speed = base_speed
+            for d in disruptions:
+                if d.type == "speed_restriction" and d.block_id == block_id:
+                    if d.speed_kmph:
+                        speed = min(speed, d.speed_kmph)
+
+            base_travel_min = (segment_distance / max(speed, 1e-6)) * 60.0
+
+            # Add block-level delays
+            block_delay = sum(
+                d.minutes
+                for d in disruptions
+                if d.type == "delay_km"
+                and d.block_id == block_id
+                and (d.train_id is None or d.train_id == train_id)
+            )
+
+            # Signals within the block
+            signal_delay_map = {
+                d.signal_id: d.minutes
+                for d in disruptions
+                if d.type == "signal_stop"
+                and d.block_id == block_id
+                and (d.train_id is None or d.train_id == train_id)
+            }
+
+            segment_start_time = current_time + timedelta(minutes=block_delay)
+            cumulative_signal_delay = 0.0
+
+            for sig in self.signals_by_block.get(block_id, []):
+                progress = min(max(sig.get("km_offset", 0.0) / segment_distance, 0.0), 1.0)
+                signal_time = segment_start_time + timedelta(
+                    minutes=base_travel_min * progress + cumulative_signal_delay
+                )
+                signal_distance = current_distance + sig.get("km_offset", 0.0)
+
+                points.append(
+                    self._point(
+                        train_id,
+                        signal_time,
+                        signal_distance,
+                        station=None,
+                        signal_id=sig.get("signal_id"),
+                        event="signal_pass",
+                    )
+                )
+
+                if sig.get("signal_id") in signal_delay_map:
+                    stop_min = signal_delay_map[sig["signal_id"]]
+                    cumulative_signal_delay += stop_min
+                    # Represent a stop at the same location
+                    stop_time = signal_time + timedelta(minutes=stop_min)
+                    points.append(
+                        self._point(
+                            train_id,
+                            stop_time,
+                            signal_distance,
+                            station=None,
+                            signal_id=sig.get("signal_id"),
+                            event="signal_stop",
+                        )
+                    )
+
+            arrival_time = segment_start_time + timedelta(
+                minutes=base_travel_min + cumulative_signal_delay
+            )
+            arrival_distance = self._station_distance(dest["station_code"])
+
+            dwell = float(dest.get("dwell_min") or 0.0)
+            departure_time = (
+                self._parse_time(dest["departure"])
+                if dest.get("departure")
+                else arrival_time + timedelta(minutes=dwell)
+            )
+            # If scheduled departure is earlier than computed arrival, respect actual
+            departure_time = max(departure_time, arrival_time + timedelta(minutes=dwell))
+
+            points.append(
+                self._point(
+                    train_id,
+                    arrival_time,
+                    arrival_distance,
+                    station=dest["station_code"],
+                    event="arrival",
+                    train_type=train_type,
+                    direction=direction,
+                )
+            )
+            if dest.get("departure"):
+                points.append(
+                    self._point(
+                        train_id,
+                        departure_time,
+                        arrival_distance,
+                        station=dest["station_code"],
+                        event="departure",
+                        train_type=train_type,
+                        direction=direction,
+                    )
+                )
+
+            total_distance += segment_distance
+            total_run_minutes += base_travel_min + cumulative_signal_delay + block_delay + dwell
+            total_delay_minutes += block_delay + cumulative_signal_delay
+
+            current_time = departure_time
+            current_distance = arrival_distance
+
+        summary = {
+            "train_id": train_id,
+            "name": train.get("name"),
+            "type": train_type,
+            "direction": direction,
+            "total_distance_km": round(total_distance, 2),
+            "run_time_min": round(total_run_minutes, 2),
+            "avg_speed_kmph": round(total_distance / (total_run_minutes / 60.0), 2) if total_run_minutes else 0.0,
+            "delay_minutes": round(total_delay_minutes, 2),
+        }
+        return points, summary
+
+    def _normalize_disruption(self, raw: Dict[str, Any]) -> Disruption:
+        """Normalize incoming disruption dict to a Disruption dataclass."""
+        return Disruption(
+            type=raw.get("type", "delay_km"),
+            block_id=raw.get("block_id"),
+            train_id=raw.get("train_id"),
+            signal_id=raw.get("signal_id"),
+            minutes=float(raw.get("minutes", 0.0) or 0.0),
+            speed_kmph=raw.get("speed_kmph"),
+            km_offset=raw.get("km_offset"),
+            reason=raw.get("reason"),
+        )
+
+    def _station_distance(self, code: str) -> float:
+        """Return cumulative km marker for a station."""
+        station = self.stations.get(code)
+        if station:
+            return float(station.get("km_marker", 0.0))
+        # Fallback to sequential order if marker missing
+        for idx, st in enumerate(self.station_order):
+            if st.get("code") == code:
+                return float(idx) * 5.0  # simple spacing fallback
+        return 0.0
+
+    def _find_block(self, start: str, end: str) -> Optional[Dict[str, Any]]:
+        """Return block connecting two stations."""
+        return self.block_by_pair.get((start, end))
+
+    @staticmethod
+    def _parse_time(time_str: str) -> datetime:
+        """Parse HH:MM into a datetime anchored to today."""
+        today = datetime.now().date()
+        try:
+            return datetime.strptime(time_str, "%H:%M").replace(year=today.year, month=today.month, day=today.day)
+        except Exception:
+            return datetime.combine(today, datetime.min.time())
+
+    @staticmethod
+    def _time_to_minutes(time_str: str) -> float:
+        """Convert HH:MM to minutes since midnight."""
+        try:
+            hh, mm = time_str.split(":")
+            return int(hh) * 60 + int(mm)
+        except Exception:
+            return 0.0
+
+    @staticmethod
+    def _format_time(dt_val: datetime) -> str:
+        """Format datetime to HH:MM."""
+        return dt_val.strftime("%H:%M")
+
+    def _point(
+        self,
+        train_id: str,
+        dt_val: datetime,
+        distance: float,
+        station: Optional[str],
+        event: str,
+        signal_id: Optional[str] = None,
+        train_type: Optional[str] = None,
+        direction: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create a standardized point for plotting."""
+        return {
+            "train_id": train_id,
+            "time": self._format_time(dt_val),
+            "distance_km": round(distance, 2),
+            "station": station,
+            "signal_id": signal_id,
+            "event": event,
+            "type": train_type,
+            "direction": direction,
         }
 

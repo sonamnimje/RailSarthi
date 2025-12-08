@@ -17,6 +17,7 @@ import HomePage from './pages/Home';
 import DashboardPage from './pages/Dashboard';
 import NotificationsPage from './pages/Notifications';
 import UnauthorizedPage from './pages/Unauthorized';
+import DigitalTwinSimulation from './pages/DigitalTwinSimulation';
 
 import { Navigate } from 'react-router-dom';
 import { ZoneFilterProvider } from './lib/ZoneFilterContext';
@@ -37,24 +38,25 @@ root.render(
 					<Route path="/signup" element={<SignupPage onSuccess={() => location.replace('/app/dashboard')} />} />
 					<Route path="/forgot-password" element={<ForgotPasswordPage />} />
 					<Route path="/unauthorized" element={<UnauthorizedPage />} />
-					{/* All other pages (including Home) use Layout */}
-					<Route element={<Layout />}>
-						<Route path="/" element={<HomePage />} />
-						<Route path="/app/dashboard" element={<DashboardPage />} />
-						
-						<Route path="/app/logs" element={<LogsPage />} />
+				{/* All other pages (including Home) use Layout */}
+				<Route element={<Layout />}>
+					<Route path="/" element={<HomePage />} />
+					<Route path="/app/dashboard" element={<DashboardPage />} />
+					
+					<Route path="/app/logs" element={<LogsPage />} />
+					<Route path="/app/simulation" element={<DigitalTwinSimulation />} />
 					<Route path="/app/overrides" element={<OverridesPage />} />
 					<Route path="/app/reports" element={<ReportsPage />} />
 					<Route path="/app/notifications" element={<NotificationsPage />} />
 					<Route
-							path="/app/settings"
-							element={
-								<RoleGuard allow={['admin']}>
-									<SettingsPage />
-								</RoleGuard>
-							}
-						/>
-					</Route>
+						path="/app/settings"
+						element={
+							<RoleGuard allow={['admin']}>
+								<SettingsPage />
+							</RoleGuard>
+						}
+					/>
+				</Route>
 					{/* Catch-all route to redirect unknown paths to Home */}
 					<Route path="*" element={<Navigate to="/" replace />} />
 				</Routes>

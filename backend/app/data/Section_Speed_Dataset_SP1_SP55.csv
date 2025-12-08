@@ -1,0 +1,56 @@
+Segment_ID,Section,Max_Speed_Passenger,Max_Speed_Freight,Reason
+SP1,NDPM–ODG,110,70,Mixed Alignment
+SP2,MSO–RKMP,105,65,Flat Track
+SP3,MDDP–MSO,90,60,Good Alignment
+SP4,ET–NDPM,120,85,Gradient Zone
+SP5,MSO–RKMP,95,55,Good Alignment
+SP6,ODG–MDDP,110,75,Tight Curves
+SP7,ET–NDPM,110,80,Mixed Alignment
+SP8,MSO–RKMP,105,65,Urban Section
+SP9,MSO–RKMP,90,50,Urban Section
+SP10,MSO–RKMP,120,85,Urban Section
+SP11,NDPM–ODG,95,65,Gradient Zone
+SP12,RKMP–BPL,90,55,Curve
+SP13,MDDP–MSO,120,85,Gradient Zone
+SP14,MSO–RKMP,105,65,Gradient Zone
+SP15,MDDP–MSO,100,60,Flat Track
+SP16,RKMP–BPL,95,65,Urban Section
+SP17,MDDP–MSO,110,80,Good Alignment
+SP18,NDPM–ODG,90,50,Tight Curves
+SP19,ET–NDPM,90,60,Curve
+SP20,RKMP–BPL,100,70,Flat Track
+SP21,NDPM–ODG,90,55,Mixed Alignment
+SP22,MDDP–MSO,100,65,Gradient Zone
+SP23,RKMP–BPL,95,55,Mixed Alignment
+SP24,ODG–MDDP,90,55,Curve
+SP25,ODG–MDDP,120,90,Curve
+SP26,MSO–RKMP,95,65,Good Alignment
+SP27,RKMP–BPL,105,70,Curve
+SP28,ET–NDPM,120,80,Urban Section
+SP29,MSO–RKMP,90,55,Gradient Zone
+SP30,NDPM–ODG,120,85,Good Alignment
+SP31,NDPM–ODG,100,65,Flat Track
+SP32,RKMP–BPL,110,80,Gradient Zone
+SP33,MSO–RKMP,120,80,Flat Track
+SP34,NDPM–ODG,120,85,Flat Track
+SP35,MDDP–MSO,90,60,Flat Track
+SP36,ODG–MDDP,105,70,Curve
+SP37,MSO–RKMP,95,65,Straight Track
+SP38,ODG–MDDP,110,80,Tight Curves
+SP39,MSO–RKMP,100,60,Gradient Zone
+SP40,RKMP–BPL,120,80,Curve
+SP41,MSO–RKMP,100,65,Tight Curves
+SP42,NDPM–ODG,110,80,Gradient Zone
+SP43,ODG–MDDP,95,55,Flat Track
+SP44,MDDP–MSO,90,50,Gradient Zone
+SP45,MDDP–MSO,105,70,Tight Curves
+SP46,ODG–MDDP,105,75,Mixed Alignment
+SP47,RKMP–BPL,95,55,Gradient Zone
+SP48,MSO–RKMP,90,50,Straight Track
+SP49,RKMP–BPL,110,75,Straight Track
+SP50,RKMP–BPL,110,70,Curve
+SP51,ODG–MDDP,100,65,Straight Track
+SP52,MDDP–MSO,95,55,Flat Track
+SP53,NDPM–ODG,95,60,Curve
+SP54,ET–NDPM,105,70,Straight Track
+SP55,MDDP–MSO,95,65,Straight Track

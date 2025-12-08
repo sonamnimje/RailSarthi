@@ -25,7 +25,7 @@ DATA_DIR = BASE_DIR / "data"
 SOLAPUR_DIR = DATA_DIR / "solapur"
 
 # Valid divisions
-VALID_DIVISIONS = ["mumbai", "pune", "bhusaval", "nagpur", "solapur"]
+VALID_DIVISIONS = ["mumbai", "pune", "bhusaval", "nagpur", "solapur", "itarsi_bhopal"]
 
 # Global cache for division datasets (loaded once on startup)
 _division_cache: Dict[str, Dict[str, Any]] = {}
@@ -120,7 +120,7 @@ def load_division_dataset(division: str, use_cache: bool = True) -> Dict[str, An
     Raises ValueError on critical validations (e.g., stations empty or sections reference unknown stations).
     Non-critical missing optional files are logged and returned as empty DataFrames.
     """
-    division = division.lower().strip()
+    division = division.lower().strip().replace("-", "_")
     
     # Check cache first
     if use_cache and division in _division_cache:

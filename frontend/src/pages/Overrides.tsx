@@ -87,13 +87,7 @@ export default function OverridesPage() {
 			<div className="mb-6">
 				<div className="flex items-center justify-between mb-2">
 					<h2 className="text-4xl font-extrabold text-gray-800">📜 Overrides & Audit Logs</h2>
-					<Link
-						to="/digital-twin-simulation"
-						className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-					>
-						<Train className="w-4 h-4" />
-						Go to Simulation
-					</Link>
+				
 				</div>
 				<p className="text-gray-600 text-lg">
 					History of all controller overrides vs. AI decisions. Used as training feedback loop for adaptive AI learning.

@@ -29,9 +29,7 @@ class Settings:
 
 	SQLALCHEMY_ECHO: bool = os.getenv("SQLALCHEMY_ECHO", "false").lower() == "true"
 
-	# RapidAPI IRCTC configuration
-	RAPIDAPI_IRCTC_KEY: str | None = os.getenv("RAPIDAPI_IRCTC_KEY")
-	RAPIDAPI_IRCTC_HOST: str | None = os.getenv("RAPIDAPI_IRCTC_HOST")
+	# RapidAPI IRCTC configuration removed
 	
 	# Weather API configuration
 	WEATHER_API_KEY: str | None = os.getenv("WEATHER_API_KEY")

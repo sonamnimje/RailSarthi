@@ -1,0 +1,71 @@
+Train_Number,Train_Name,Station,Arrival_Time,Departure_Time,Distance_km
+PT101,Itarsi–Bhopal Passenger,Itarsi Junction (ET),06:26,06:27,0
+PT101,Itarsi–Bhopal Passenger,Narmadapuram (NDPM),06:47,06:50,18
+PT101,Itarsi–Bhopal Passenger,Obaidulla Ganj (ODG),07:20,07:23,45
+PT101,Itarsi–Bhopal Passenger,Mandideep (MDDP),07:44,07:46,65
+PT101,Itarsi–Bhopal Passenger,Misrod (MSO),07:59,08:01,78
+PT101,Itarsi–Bhopal Passenger,Rani Kamalapati (RKMP),08:14,08:18,90
+PT101,Itarsi–Bhopal Passenger,Bhopal Junction (BPL),08:21,08:22,96
+PT102,Narmada Passenger Special,Itarsi Junction (ET),18:31,18:34,0
+PT102,Narmada Passenger Special,Narmadapuram (NDPM),18:52,18:53,18
+PT102,Narmada Passenger Special,Obaidulla Ganj (ODG),19:25,19:29,45
+PT102,Narmada Passenger Special,Mandideep (MDDP),19:49,19:50,65
+PT102,Narmada Passenger Special,Misrod (MSO),20:04,20:08,78
+PT102,Narmada Passenger Special,Rani Kamalapati (RKMP),20:19,20:23,90
+PT102,Narmada Passenger Special,Bhopal Junction (BPL),20:26,20:28,96
+PT103,Bhopal Fast Passenger,Itarsi Junction (ET),04:22,04:25,0
+PT103,Bhopal Fast Passenger,Narmadapuram (NDPM),04:43,04:44,18
+PT103,Bhopal Fast Passenger,Obaidulla Ganj (ODG),05:16,05:19,45
+PT103,Bhopal Fast Passenger,Mandideep (MDDP),05:40,05:43,65
+PT103,Bhopal Fast Passenger,Misrod (MSO),05:55,05:56,78
+PT103,Bhopal Fast Passenger,Rani Kamalapati (RKMP),06:10,06:14,90
+PT103,Bhopal Fast Passenger,Bhopal Junction (BPL),06:17,06:18,96
+PT104,Central India Passenger,Itarsi Junction (ET),06:58,07:01,0
+PT104,Central India Passenger,Narmadapuram (NDPM),07:19,07:21,18
+PT104,Central India Passenger,Obaidulla Ganj (ODG),07:52,07:56,45
+PT104,Central India Passenger,Mandideep (MDDP),08:16,08:18,65
+PT104,Central India Passenger,Misrod (MSO),08:31,08:33,78
+PT104,Central India Passenger,Rani Kamalapati (RKMP),08:46,08:47,90
+PT104,Central India Passenger,Bhopal Junction (BPL),08:53,08:55,96
+PT105,Satpura Passenger,Itarsi Junction (ET),20:05,20:09,0
+PT105,Satpura Passenger,Narmadapuram (NDPM),20:26,20:30,18
+PT105,Satpura Passenger,Obaidulla Ganj (ODG),20:59,21:03,45
+PT105,Satpura Passenger,Mandideep (MDDP),21:23,21:27,65
+PT105,Satpura Passenger,Misrod (MSO),21:38,21:42,78
+PT105,Satpura Passenger,Rani Kamalapati (RKMP),21:53,21:55,90
+PT105,Satpura Passenger,Bhopal Junction (BPL),22:00,22:02,96
+PT106,Vindhya Passenger,Itarsi Junction (ET),10:57,11:00,0
+PT106,Vindhya Passenger,Narmadapuram (NDPM),11:18,11:22,18
+PT106,Vindhya Passenger,Obaidulla Ganj (ODG),11:51,11:52,45
+PT106,Vindhya Passenger,Mandideep (MDDP),12:15,12:18,65
+PT106,Vindhya Passenger,Misrod (MSO),12:30,12:32,78
+PT106,Vindhya Passenger,Rani Kamalapati (RKMP),12:45,12:46,90
+PT106,Vindhya Passenger,Bhopal Junction (BPL),12:52,12:53,96
+PT107,Forest Line Passenger,Itarsi Junction (ET),19:12,19:13,0
+PT107,Forest Line Passenger,Narmadapuram (NDPM),19:33,19:36,18
+PT107,Forest Line Passenger,Obaidulla Ganj (ODG),20:06,20:09,45
+PT107,Forest Line Passenger,Mandideep (MDDP),20:30,20:32,65
+PT107,Forest Line Passenger,Misrod (MSO),20:45,20:49,78
+PT107,Forest Line Passenger,Rani Kamalapati (RKMP),21:00,21:03,90
+PT107,Forest Line Passenger,Bhopal Junction (BPL),21:07,21:08,96
+PT108,Valley Passenger,Itarsi Junction (ET),04:32,04:35,0
+PT108,Valley Passenger,Narmadapuram (NDPM),04:53,04:55,18
+PT108,Valley Passenger,Obaidulla Ganj (ODG),05:26,05:30,45
+PT108,Valley Passenger,Mandideep (MDDP),05:50,05:54,65
+PT108,Valley Passenger,Misrod (MSO),06:05,06:08,78
+PT108,Valley Passenger,Rani Kamalapati (RKMP),06:20,06:23,90
+PT108,Valley Passenger,Bhopal Junction (BPL),06:27,06:29,96
+PT109,ET–BPL Local Passenger,Itarsi Junction (ET),08:51,08:52,0
+PT109,ET–BPL Local Passenger,Narmadapuram (NDPM),09:12,09:14,18
+PT109,ET–BPL Local Passenger,Obaidulla Ganj (ODG),09:45,09:46,45
+PT109,ET–BPL Local Passenger,Mandideep (MDDP),10:09,10:11,65
+PT109,ET–BPL Local Passenger,Misrod (MSO),10:24,10:28,78
+PT109,ET–BPL Local Passenger,Rani Kamalapati (RKMP),10:39,10:43,90
+PT109,ET–BPL Local Passenger,Bhopal Junction (BPL),10:46,10:48,96
+PT110,Regional Passenger Express,Itarsi Junction (ET),06:01,06:04,0
+PT110,Regional Passenger Express,Narmadapuram (NDPM),06:22,06:23,18
+PT110,Regional Passenger Express,Obaidulla Ganj (ODG),06:55,06:56,45
+PT110,Regional Passenger Express,Mandideep (MDDP),07:19,07:20,65
+PT110,Regional Passenger Express,Misrod (MSO),07:34,07:38,78
+PT110,Regional Passenger Express,Rani Kamalapati (RKMP),07:49,07:50,90
+PT110,Regional Passenger Express,Bhopal Junction (BPL),07:56,07:59,96

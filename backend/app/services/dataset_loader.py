@@ -253,3 +253,82 @@ def normalize_trains(trains_df: pd.DataFrame) -> List[Dict[str, Any]]:
     
     return trains
 
+
+# -----------------------------------------------------------------------------
+# Time-distance JSON loader (Jabalpur → Itarsi section)
+# -----------------------------------------------------------------------------
+
+def _load_json_file(file_name: str, data_path: Optional[Path] = None) -> Any:
+    """
+    Safe JSON loader with helpful defaults.
+
+    Args:
+        file_name: Name of the JSON file to load.
+        data_path: Optional custom directory path.
+
+    Returns:
+        Parsed JSON content or an empty list/dict on failure.
+    """
+    target_dir = data_path or DATA_DIR
+    file_path = target_dir / file_name
+
+    if not file_path.exists():
+        logger.warning(f"JSON dataset not found: {file_path}")
+        return [] if file_name.endswith(".json") else {}
+
+    try:
+        with file_path.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as exc:
+        logger.error(f"Failed to load {file_path}: {exc}")
+        return [] if file_name.endswith(".json") else {}
+
+
+def load_time_distance_json(data_path: Optional[Path] = None) -> Dict[str, Any]:
+    """
+    Load the Jabalpur → Itarsi time-distance dataset from JSON files.
+
+    Args:
+        data_path: Optional override for the data directory (defaults to app/data).
+
+    Returns:
+        Dictionary with stations, blocks, signals, trains, and timetable entries.
+    """
+    target_dir = data_path or DATA_DIR
+    datasets = {
+        "stations": _load_json_file("stations.json", target_dir),
+        "blocks": _load_json_file("blocks.json", target_dir),
+        "signals": _load_json_file("signals.json", target_dir),
+        "trains": _load_json_file("trains.json", target_dir),
+        "timetable": _load_json_file("timetable.json", target_dir),
+    }
+
+    logger.info(
+        "Loaded time-distance dataset: %s stations, %s blocks, %s signals, %s trains, %s timetable rows",
+        len(datasets["stations"]),
+        len(datasets["blocks"]),
+        len(datasets["signals"]),
+        len(datasets["trains"]),
+        len(datasets["timetable"]),
+    )
+    return datasets
+
+
+def load_time_distance_frames(data_path: Optional[Path] = None) -> Dict[str, pd.DataFrame]:
+    """
+    Convenience wrapper to load the JSON dataset as pandas DataFrames.
+
+    Args:
+        data_path: Optional data directory override.
+
+    Returns:
+        Dictionary of pandas DataFrames keyed by dataset name.
+    """
+    raw = load_time_distance_json(data_path)
+    return {
+        "stations": pd.DataFrame(raw.get("stations", [])),
+        "blocks": pd.DataFrame(raw.get("blocks", [])),
+        "signals": pd.DataFrame(raw.get("signals", [])),
+        "trains": pd.DataFrame(raw.get("trains", [])),
+        "timetable": pd.DataFrame(raw.get("timetable", [])),
+    }

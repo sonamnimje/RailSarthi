@@ -89,9 +89,15 @@ export const computeKpis = (
 		results.speedVariance[type] = Number(avg.toFixed(2))
 	}
 
-	const passengerDelay = delaysByType['Passenger']?.[0] ?? 0.1
-	const freightDelay = delaysByType['Freight']?.[0] ?? 0.1
-	results.delayRatioPassengerFreight = Number((passengerDelay / freightDelay).toFixed(2))
+	// Calculate delay ratio using averages, not first values
+	const passengerAvg = results.avgDelayByType['Passenger'] ?? 0
+	const freightAvg = results.avgDelayByType['Freight'] ?? 0
+	// Avoid division by zero - if freight delay is 0, return 0 or a safe value
+	if (freightAvg === 0) {
+		results.delayRatioPassengerFreight = passengerAvg > 0 ? 999 : 0
+	} else {
+		results.delayRatioPassengerFreight = Number((passengerAvg / freightAvg).toFixed(2))
+	}
 
 	if (state.lastDisruptionEnd && state.simTimeMin > state.lastDisruptionEnd) {
 		results.recoveryTimeAfterDisruption = Number((state.simTimeMin - state.lastDisruptionEnd).toFixed(1))
