@@ -17,7 +17,6 @@ import HomePage from './pages/Home';
 import DashboardPage from './pages/Dashboard';
 import NotificationsPage from './pages/Notifications';
 import UnauthorizedPage from './pages/Unauthorized';
-import DigitalTwinSimulation from './pages/DigitalTwinSimulation';
 
 import { Navigate } from 'react-router-dom';
 import { ZoneFilterProvider } from './lib/ZoneFilterContext';
@@ -44,11 +43,10 @@ root.render(
 						<Route path="/app/dashboard" element={<DashboardPage />} />
 						
 						<Route path="/app/logs" element={<LogsPage />} />
-						<Route path="/app/overrides" element={<OverridesPage />} />
-						<Route path="/app/reports" element={<ReportsPage />} />
-						<Route path="/app/notifications" element={<NotificationsPage />} />
-						<Route path="/digital-twin-simulation" element={<DigitalTwinSimulation />} />
-						<Route
+					<Route path="/app/overrides" element={<OverridesPage />} />
+					<Route path="/app/reports" element={<ReportsPage />} />
+					<Route path="/app/notifications" element={<NotificationsPage />} />
+					<Route
 							path="/app/settings"
 							element={
 								<RoleGuard allow={['admin']}>
