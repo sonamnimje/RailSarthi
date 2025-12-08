@@ -20,7 +20,6 @@ export default function Layout() {
 	const navItems = [
 		{ to: '/app/dashboard', label: 'Dashboard' },
 		{ to: '/app/logs', label: 'Logs' },
-		{ to: '/digital-twin-simulation', label: 'Digital Twin' },
 		{ to: '/app/overrides', label: 'Overrides' },
 		{ to: '/app/reports', label: 'Reports' },
 		{ to: '/app/settings', label: 'Settings' },
