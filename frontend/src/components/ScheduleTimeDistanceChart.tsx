@@ -11,6 +11,13 @@ import {
 	Scatter,
 } from 'recharts'
 
+type ApiDisruption = {
+	km_position: number
+	time_min: number
+	type: string
+	label?: string
+}
+
 type ApiStop = {
 	train_id?: string
 	station_name: string
@@ -30,7 +37,16 @@ type ApiTrain = {
 type ApiResponse = {
 	stations: { station_name: string; km_position: number }[]
 	trains: ApiTrain[]
-	meta: { earliest_departure_min: number; latest_arrival_min: number; source_file?: string }
+	meta: {
+		earliest_departure_min: number
+		latest_arrival_min: number
+		source_file?: string
+		avg_throughput_kmph?: number
+		avg_halt_delay_min?: number
+		train_count?: number
+		station_count?: number
+	}
+	disruptions?: ApiDisruption[]
 }
 
 type ChartPoint = {
@@ -234,6 +250,8 @@ export default function ScheduleTimeDistanceChart({ title = 'Timetable Time-Dist
 
 	const yTicks = useMemo(() => (data ? [...new Set(data.stations.map((s) => Number(s.km_position)))].sort((a, b) => a - b) : []), [data])
 
+	const disruptionPoints = useMemo(() => data?.disruptions?.map((d) => ({ km: d.km_position, timeMin: d.time_min, type: d.type, label: d.label })) || [], [data])
+
 	const haltPoints = useMemo(() => {
 		const points: ChartPoint[] = []
 		Object.values(series).forEach((pointsForTrain) => {
@@ -256,6 +274,28 @@ export default function ScheduleTimeDistanceChart({ title = 'Timetable Time-Dist
 					<div className="text-lg font-bold text-slate-900">{title}</div>
 					<div className="text-sm text-slate-600">
 						Built from backend/data/{data?.meta?.source_file || 'train_schedule.csv'} · hover to view stop details
+					</div>
+					<div className="flex flex-wrap gap-3 text-xs text-slate-600 mt-1">
+						{typeof data?.meta?.avg_throughput_kmph === 'number' && (
+							<span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+								Freight throughput: {data.meta.avg_throughput_kmph.toFixed(1)} km/h
+							</span>
+						)}
+						{typeof data?.meta?.avg_halt_delay_min === 'number' && (
+							<span className="px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+								Avg halt delay: {data.meta.avg_halt_delay_min.toFixed(1)} min
+							</span>
+						)}
+						{data?.meta?.train_count && data?.meta?.station_count && (
+							<span className="px-2 py-1 rounded-full bg-slate-50 text-slate-700 border border-slate-200">
+								{data.meta.train_count} trains · {data.meta.station_count} stations
+							</span>
+						)}
+						{data?.disruptions?.length ? (
+							<span className="px-2 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-100">
+								{data.disruptions.length} active disruptions filtered from graph
+							</span>
+						) : null}
 					</div>
 					{lastLoadedAt && (
 						<div className="text-xs text-slate-500 mt-1">
@@ -332,6 +372,15 @@ export default function ScheduleTimeDistanceChart({ title = 'Timetable Time-Dist
 								opacity={0.9}
 								isAnimationActive={false}
 							/>
+							{disruptionPoints.length > 0 && (
+								<Scatter
+									name="Disruptions"
+									data={disruptionPoints}
+									fill="#dc2626"
+									shape="triangle"
+									isAnimationActive={false}
+								/>
+							)}
 						</LineChart>
 					</ResponsiveContainer>
 				) : (

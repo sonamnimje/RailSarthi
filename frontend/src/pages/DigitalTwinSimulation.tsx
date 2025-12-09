@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import TrainMap from '../components/TrainMap'
 import TimeDistanceChart from '../components/TimeDistanceChart'
+import ScheduleTimeDistanceChart from '../components/ScheduleTimeDistanceChart'
 import DisruptionController from '../components/DisruptionController'
 import {
 	createSimulationEngine,
@@ -813,7 +814,6 @@ export default function DigitalTwinSimulation() {
 					</div>
 				</div>
 			</section>
-
 			{/* Second row: Map and AI Assistant */}
 			<section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
 				{/* Railway Map */}

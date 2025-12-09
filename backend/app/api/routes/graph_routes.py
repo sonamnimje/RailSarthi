@@ -1,6 +1,7 @@
-from typing import Optional, Literal, List, Dict, Any
+from typing import Optional, Literal, List, Dict, Any, Tuple
 import asyncio
 from pathlib import Path
+from datetime import datetime
 
 import pandas as pd
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
@@ -95,6 +96,153 @@ def get_schedule_time_distance() -> Dict[str, Any]:
 	}
 
 	return {"stations": stations, "trains": trains, "meta": meta}
+
+
+def _parse_dt(val: Any) -> Optional[datetime]:
+	"""Parse the DD-MM-YYYY HH:MM strings used in the WAT freight file."""
+	if pd.isna(val):
+		return None
+	try:
+		# dayfirst covers both 07-08-2025 22:25 and 07/08/2025 22:25
+		return pd.to_datetime(str(val), dayfirst=True, errors="coerce").to_pydatetime()
+	except Exception:
+		return None
+
+
+def _load_freight_wat(disruptions: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]]]:
+	"""
+	Load the WAT freight CSV and convert into schedule-style payload.
+
+	We normalise distances so that each train starts at km 0, remove any
+	blocks that are disrupted, and compute freight throughput KPIs.
+	"""
+	data_dir = Path(__file__).resolve().parents[2] / "data"
+	path = data_dir / "WAT_GOODS_TRAIN_AUG25_01082025_27082025.csv"
+	if not path.exists():
+		raise HTTPException(status_code=404, detail="WAT freight CSV not found")
+
+	df = pd.read_csv(path)
+
+	# Guard for expected columns
+	required_cols = {"LoadId", "Sttn", "Total Km", "Block Section", "Block Km", "Arrival Time", "Depart Time"}
+	if not required_cols.issubset(set(df.columns)):
+		raise HTTPException(status_code=400, detail=f"Freight CSV missing columns. Expected {sorted(required_cols)}")
+
+	df["arrival_dt"] = df["Arrival Time"].map(_parse_dt)
+	df["depart_dt"] = df["Depart Time"].map(_parse_dt)
+	df["event_dt"] = df["depart_dt"].fillna(df["arrival_dt"])
+
+	# Filter disrupted blocks: if a disruption has block_id, drop those rows
+	blocked = {str(d.get("block_id", "")).lower().strip() for d in disruptions if d.get("block_id")}
+	blocked.discard("")
+	if blocked:
+		df["block_section_norm"] = df["Block Section"].astype(str).str.lower().str.strip()
+		df = df[~df["block_section_norm"].isin(blocked)]
+
+	trains: List[Dict[str, Any]] = []
+	all_stations: Dict[str, float] = {}
+	all_departures: List[int] = []
+	all_arrivals: List[int] = []
+	disruption_points: List[Dict[str, Any]] = []
+	throughputs: List[float] = []
+	delay_minutes: List[float] = []
+
+	for load_id, g in df.groupby("LoadId"):
+		g_sorted = g.sort_values("event_dt")
+		# Distance baseline per train
+		first_dist = g_sorted["Total Km"].dropna().min() if not g_sorted["Total Km"].dropna().empty else 0.0
+		first_time = g_sorted["event_dt"].dropna().min()
+		if pd.isna(first_time):
+			continue
+
+		stops: List[Dict[str, Any]] = []
+		prev_dist = 0.0
+		for _, row in g_sorted.iterrows():
+			total_km = float(row.get("Total Km") or 0.0)
+			block_km = float(row.get("Block Km") or 0.0)
+			km_position = total_km - first_dist if total_km else prev_dist + block_km
+			prev_dist = km_position
+
+			arr_dt = row.get("arrival_dt")
+			dep_dt = row.get("depart_dt") or arr_dt
+			if pd.isna(dep_dt):
+				continue
+
+			arrival_min = int((arr_dt - first_time).total_seconds() / 60) if isinstance(arr_dt, datetime) else int((dep_dt - first_time).total_seconds() / 60)
+			departure_min = int((dep_dt - first_time).total_seconds() / 60)
+			halt_min = max(0, departure_min - arrival_min)
+
+			all_stations[row["Sttn"]] = km_position
+			all_departures.append(departure_min)
+			all_arrivals.append(arrival_min)
+
+			stops.append(
+				{
+					"train_id": str(load_id),
+					"station_name": str(row["Sttn"]),
+					"km_position": round(km_position, 2),
+					"scheduled_arrival": (arr_dt or dep_dt).strftime("%H:%M"),
+					"scheduled_departure": dep_dt.strftime("%H:%M"),
+					"arrival_min": arrival_min,
+					"departure_min": departure_min,
+					"halt_minutes": halt_min,
+					"block_section": str(row["Block Section"]),
+					"speed_kmph": float(row.get("Speed") or 0.0),
+				}
+			)
+
+			if row.get("block_section_norm") in blocked:
+				disruption_points.append(
+					{"km_position": km_position, "time_min": departure_min, "type": "block", "label": row["Block Section"]}
+				)
+
+		if not stops:
+			continue
+
+		trains.append({"train_id": str(load_id), "stops": stops})
+
+		# Throughput per train (km per hour over run)
+		span_km = max(s["km_position"] for s in stops) - min(s["km_position"] for s in stops)
+		duration_hr = max(s["departure_min"] for s in stops) / 60 or 1
+		throughputs.append(span_km / duration_hr)
+
+		# Delay proxy = total halt time
+		delay_minutes.append(sum(s["halt_minutes"] for s in stops))
+
+	stations = [{"station_name": name, "km_position": round(km, 2)} for name, km in sorted(all_stations.items(), key=lambda kv: kv[1])]
+
+	meta = {
+		"earliest_departure_min": min(all_departures) if all_departures else 0,
+		"latest_arrival_min": max(all_arrivals) if all_arrivals else 0,
+		"station_count": len(stations),
+		"train_count": len(trains),
+		"source_file": path.name,
+		"avg_throughput_kmph": round(sum(throughputs) / len(throughputs), 2) if throughputs else 0.0,
+		"avg_halt_delay_min": round(sum(delay_minutes) / len(delay_minutes), 2) if delay_minutes else 0.0,
+		"blocked_sections": list(blocked),
+	}
+
+	return stations, trains, meta, disruption_points
+
+
+@router.get("/time-distance/freight")
+def get_freight_time_distance() -> Dict[str, Any]:
+	"""
+	Return freight-only time–distance chart built from WAT goods data (backend/app/data).
+
+	- Uses real block/section timings
+	- Applies active disruptions (block_id) by excluding affected block sections
+	- Returns throughput + delay KPIs in meta
+	"""
+	manager = get_time_distance_manager()
+	stations, trains, meta, disruption_points = _load_freight_wat(manager.disruptions)
+
+	return {
+		"stations": stations,
+		"trains": trains,
+		"meta": meta,
+		"disruptions": disruption_points,
+	}
 
 
 @router.get("/time-distance/jbp-itarsi")
