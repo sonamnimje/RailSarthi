@@ -111,23 +111,53 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 	// Helper function to setup fallback data
 	const setupFallbackData = () => {
 		const fallbackData: DigitalTwinMapData = {
-			division: 'itarsi_bhopal',
+			division: 'ktv_psa',
 			stations: [
-				{ stationCode: 'ET', stationName: 'Itarsi Jn (ET)', lat: 22.6060, lon: 77.7590 },
-				{ stationCode: 'NDPM', stationName: 'Narmadapuram (NDPM)', lat: 22.7440, lon: 77.7275 },
-				{ stationCode: 'ODG', stationName: 'Obaidullaganj (ODG)', lat: 22.9930, lon: 77.5850 },
-				{ stationCode: 'MDDP', stationName: 'Mandideep (MDDP)', lat: 23.0825, lon: 77.5290 },
-				{ stationCode: 'MSO', stationName: 'Misrod (MSO)', lat: 23.1789, lon: 77.4648 },
-				{ stationCode: 'RKMP', stationName: 'Rani Kamalapati (RKMP)', lat: 23.2355, lon: 77.4332 },
-				{ stationCode: 'BPL', stationName: 'Bhopal Jn (BPL)', lat: 23.2599, lon: 77.4029 },
+				{ stationCode: 'KTV', stationName: 'Kottavalasa Jn (KTV)', lat: 17.89, lon: 83.19 },
+				{ stationCode: 'KPL', stationName: 'Kantakapalle (KPL)', lat: 17.95, lon: 83.21 },
+				{ stationCode: 'ALM', stationName: 'Alamanda (ALM)', lat: 18.01, lon: 83.27 },
+				{ stationCode: 'KUK', stationName: 'Koru Konda (KUK)', lat: 18.05, lon: 83.32 },
+				{ stationCode: 'VZM', stationName: 'Vizianagaram Jn (VZM)', lat: 18.11, lon: 83.4 },
+				{ stationCode: 'NML', stationName: 'Nellimarla (NML)', lat: 18.19, lon: 83.46 },
+				{ stationCode: 'GVI', stationName: 'Garividi (GVI)', lat: 18.27, lon: 83.53 },
+				{ stationCode: 'CPP', stationName: 'Chipurupalle (CPP)', lat: 18.32, lon: 83.57 },
+				{ stationCode: 'BTVA', stationName: 'Batuva (BTVA)', lat: 18.34, lon: 83.62 },
+				{ stationCode: 'SGDM', stationName: 'Sigadam (SGDM)', lat: 18.36, lon: 83.68 },
+				{ stationCode: 'PDU', stationName: 'Ponduru (PDU)', lat: 18.36, lon: 83.78 },
+				{ stationCode: 'DUSI', stationName: 'Dusi (DUSI)', lat: 18.37, lon: 83.86 },
+				{ stationCode: 'CHE', stationName: 'Srikakulam Road (CHE)', lat: 18.41, lon: 83.9 },
+				{ stationCode: 'ULM', stationName: 'Urlam (ULM)', lat: 18.44, lon: 83.99 },
+				{ stationCode: 'TIU', stationName: 'Tilaru (TIU)', lat: 18.47, lon: 84.07 },
+				{ stationCode: 'HCM', stationName: 'Harischandrapuram (HCM)', lat: 18.48, lon: 84.12 },
+				{ stationCode: 'KBM', stationName: 'Kotabommali (KBM)', lat: 18.49, lon: 84.2 },
+				{ stationCode: 'DGB', stationName: 'Dandu Gopalapuram (DGB)', lat: 18.54, lon: 84.24 },
+				{ stationCode: 'NWP', stationName: 'Naupada Jn (NWP)', lat: 18.58, lon: 84.28 },
+				{ stationCode: 'RMZ', stationName: 'Routhpuram (RMZ)', lat: 18.62, lon: 84.34 },
+				{ stationCode: 'PUN', stationName: 'Pundi (PUN)', lat: 18.67, lon: 84.37 },
+				{ stationCode: 'PSA', stationName: 'Palasa (PSA)', lat: 18.76, lon: 84.42 },
 			],
 			sections: [
-				{ section_id: 'ET-NDPM', from: 'ET', to: 'NDPM' },
-				{ section_id: 'NDPM-ODG', from: 'NDPM', to: 'ODG' },
-				{ section_id: 'ODG-MDDP', from: 'ODG', to: 'MDDP' },
-				{ section_id: 'MDDP-MSO', from: 'MDDP', to: 'MSO' },
-				{ section_id: 'MSO-RKMP', from: 'MSO', to: 'RKMP' },
-				{ section_id: 'RKMP-BPL', from: 'RKMP', to: 'BPL' },
+				{ section_id: 'KTV-KPL', from: 'KTV', to: 'KPL' },
+				{ section_id: 'KPL-ALM', from: 'KPL', to: 'ALM' },
+				{ section_id: 'ALM-KUK', from: 'ALM', to: 'KUK' },
+				{ section_id: 'KUK-VZM', from: 'KUK', to: 'VZM' },
+				{ section_id: 'VZM-NML', from: 'VZM', to: 'NML' },
+				{ section_id: 'NML-GVI', from: 'NML', to: 'GVI' },
+				{ section_id: 'GVI-CPP', from: 'GVI', to: 'CPP' },
+				{ section_id: 'CPP-BTVA', from: 'CPP', to: 'BTVA' },
+				{ section_id: 'BTVA-SGDM', from: 'BTVA', to: 'SGDM' },
+				{ section_id: 'SGDM-PDU', from: 'SGDM', to: 'PDU' },
+				{ section_id: 'PDU-DUSI', from: 'PDU', to: 'DUSI' },
+				{ section_id: 'DUSI-CHE', from: 'DUSI', to: 'CHE' },
+				{ section_id: 'CHE-ULM', from: 'CHE', to: 'ULM' },
+				{ section_id: 'ULM-TIU', from: 'ULM', to: 'TIU' },
+				{ section_id: 'TIU-HCM', from: 'TIU', to: 'HCM' },
+				{ section_id: 'HCM-KBM', from: 'HCM', to: 'KBM' },
+				{ section_id: 'KBM-DGB', from: 'KBM', to: 'DGB' },
+				{ section_id: 'DGB-NWP', from: 'DGB', to: 'NWP' },
+				{ section_id: 'NWP-RMZ', from: 'NWP', to: 'RMZ' },
+				{ section_id: 'RMZ-PUN', from: 'RMZ', to: 'PUN' },
+				{ section_id: 'PUN-PSA', from: 'PUN', to: 'PSA' },
 			]
 		};
 		
@@ -405,7 +435,7 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center h-full" style={{ backgroundColor: '#bfdbfe', minHeight: '600px' }}>
-				<div className="text-gray-700 text-lg">Loading Itarsi–Bhopal map...</div>
+				<div className="text-gray-700 text-lg">Loading KTV–PSA map...</div>
 			</div>
 		);
 	}
@@ -440,7 +470,7 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 		<div className="w-full h-full relative" style={{ backgroundColor: '#bfdbfe', minHeight: '600px', height: '100%' }}>
 			{/* Section title */}
 			<div className="absolute top-4 left-4 z-[1000] bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
-				<div className="font-bold text-lg">Itarsi → Bhopal Section</div>
+				<div className="font-bold text-lg">KTV → PSA Section</div>
 				<div className="text-xs opacity-90">Live twin map (WCR)</div>
 			</div>
 			
@@ -908,7 +938,7 @@ export default function RailwaySchematicMap({ division, selectedTrain, onTrainCl
 							<Popup>
 								<div className="font-semibold text-base">{stationData.name}</div>
 								<div className="text-sm text-gray-600">{station.stationCode}</div>
-								<div className="text-xs text-gray-500 mt-1">Itarsi–Bhopal corridor</div>
+								<div className="text-xs text-gray-500 mt-1">KTV–PSA corridor</div>
 							</Popup>
 						</Marker>
 					);

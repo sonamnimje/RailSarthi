@@ -163,7 +163,7 @@ export default function TimeDistanceChart({ title, stations, trains, snapshot, v
 		})
 		const max = allTimes.length ? Math.max(...allTimes) : 180
 		return Math.max(max + 15, 60) // pad 15 min, min 1h
-	}, [snapshot.trains, visibleTrains])
+	}, [snapshot.trains, snapshot.simTimeMin, visibleTrains])
 
 	const timeScale = useCallback(
 		(min: number) => (min / maxTimeMin) * chartWidth,
@@ -307,7 +307,7 @@ export default function TimeDistanceChart({ title, stations, trains, snapshot, v
 
 			return { train, segments }
 		})
-	}, [distanceScale, timeScale, snapshot.trains, visibleTrains])
+	}, [distanceScale, timeScale, snapshot.trains, snapshot.simTimeMin, visibleTrains])
 
 	const disruptionBlocks = useMemo(() => {
 		return (snapshot.disruptions || []).map((d) => {
@@ -337,6 +337,10 @@ export default function TimeDistanceChart({ title, stations, trains, snapshot, v
 				fillColor = 'rgba(168, 85, 247, 0.25)' // Purple
 				strokeColor = 'rgba(147, 51, 234, 0.9)'
 				textColor = '#6b21a8'
+			} else if (d.type === 'maintenance') {
+				fillColor = 'rgba(107, 114, 128, 0.25)' // Gray
+				strokeColor = 'rgba(75, 85, 99, 0.9)'
+				textColor = '#111827'
 			}
 			
 			return {
@@ -373,7 +377,7 @@ export default function TimeDistanceChart({ title, stations, trains, snapshot, v
 			}
 			return { train, segments }
 		})
-	}, [distanceScale, orderedStations, timeScale, visibleTrains])
+	}, [distanceScale, orderedStations, timeScale, visibleTrains, snapshot.simTimeMin])
 
 	const maxHourTick = Math.ceil(maxTimeMin / 60)
 
@@ -410,7 +414,7 @@ export default function TimeDistanceChart({ title, stations, trains, snapshot, v
 			<div className="flex flex-wrap items-center justify-between gap-3 mb-3">
 				<div>
 					<div className="text-lg font-bold text-slate-900">{title || 'Time vs Distance'}</div>
-					<div className="text-sm text-slate-600">Live Marey diagram · Itarsi → Bhopal</div>
+					<div className="text-sm text-slate-600">Live Marey diagram · KTV → PSA</div>
 				</div>
 				<div className="flex items-center gap-2 text-sm">
 					<button
@@ -794,7 +798,7 @@ export default function TimeDistanceChart({ title, stations, trains, snapshot, v
 						textAnchor="middle"
 						className="text-lg font-extrabold fill-slate-900"
 					>
-						Itarsi (ET) → Bhopal (BPL) — Time vs Distance Simulation
+						Kottavalasa (KTV) → Palasa (PSA) — Time vs Distance Simulation
 					</text>
 				</svg>
 			</div>

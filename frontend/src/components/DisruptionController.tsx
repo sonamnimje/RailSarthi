@@ -14,6 +14,7 @@ const DISRUPTION_TYPES: Array<{ value: DisruptionType; label: string; color: str
 	{ value: 'rolling_stock', label: 'Loco Failure', color: 'bg-purple-100 text-purple-800 border-purple-200' },
 	{ value: 'operational', label: 'Crew Delay', color: 'bg-orange-100 text-orange-800 border-orange-200' },
 	{ value: 'platform_issue', label: 'Platform Congestion', color: 'bg-pink-100 text-pink-800 border-pink-200' },
+	{ value: 'maintenance', label: 'Maintenance Block', color: 'bg-slate-100 text-slate-800 border-slate-200' },
 ];
 
 export default function DisruptionController({ stations, onApplyDisruption, onClearDisruptions }: DisruptionControllerProps) {
@@ -39,8 +40,8 @@ export default function DisruptionController({ stations, onApplyDisruption, onCl
 			startAtMin: startDelay,
 			durationMin: duration,
 			speedReduction: {
-				Passenger: selectedType === 'track_block' ? 0 : selectedType === 'signal_failure' ? 0.25 : 0.5,
-				Freight: selectedType === 'track_block' ? 0 : selectedType === 'signal_failure' ? 0.15 : 0.7,
+				Passenger: selectedType === 'track_block' || selectedType === 'maintenance' ? 0 : selectedType === 'signal_failure' ? 0.25 : 0.5,
+				Freight: selectedType === 'track_block' || selectedType === 'maintenance' ? 0 : selectedType === 'signal_failure' ? 0.15 : 0.7,
 			},
 		};
 

@@ -3,6 +3,26 @@
 
 export type TrainType = 'Passenger' | 'Freight'
 
+export type BlockSection = {
+	id: string
+	fromStation: string
+	toStation: string
+	lengthKm: number
+}
+
+export type BlockState = {
+	id: string
+	fromStation: string
+	toStation: string
+	lengthKm: number
+	occupiedBy: string | null
+	queue: string[]
+	closed: boolean
+	reason?: string
+	traversals: number
+	lastReleasedAt?: number
+}
+
 export type Station = {
 	code: string
 	name: string
@@ -41,6 +61,7 @@ export type DisruptionType =
 	| 'multiple'
 	| 'high_traffic'
 	| 'peak_capacity'
+	| 'maintenance'
 
 export type Disruption = {
 	id: string
@@ -105,6 +126,7 @@ export type SimulationSnapshot = {
 	lastDisruptionEnd?: number
 	speedMultiplier: number
 	prioritizationDecisions: PrioritizationDecision[]
+	blockStates: Record<string, BlockState>
 }
 
 type EngineConfig = {
@@ -125,6 +147,87 @@ const findStation = (stations: Station[], code: string) =>
 
 const getDistanceForStation = (stations: Station[], code: string) =>
 	findStation(stations, code)?.distanceKm ?? 0
+
+const buildBlockSections = (stations: Station[]): BlockSection[] => {
+	const ordered = [...stations].sort((a, b) => a.distanceKm - b.distanceKm)
+	const sections: BlockSection[] = []
+	for (let i = 0; i < ordered.length - 1; i += 1) {
+		const curr = ordered[i]
+		const next = ordered[i + 1]
+		sections.push({
+			id: `${curr.code}-${next.code}`,
+			fromStation: curr.code,
+			toStation: next.code,
+			lengthKm: Math.abs(next.distanceKm - curr.distanceKm),
+		})
+	}
+	return sections
+}
+
+const initBlockStates = (sections: BlockSection[]): Record<string, BlockState> => {
+	return sections.reduce<Record<string, BlockState>>((acc, section) => {
+		acc[section.id] = {
+			...section,
+			occupiedBy: null,
+			queue: [],
+			closed: false,
+			reason: undefined,
+			traversals: 0,
+		}
+		return acc
+	}, {})
+}
+
+const getBlockIdForSegment = (trainCfg: TrainConfig, segmentIndex: number) => {
+	const curr = trainCfg.stations[segmentIndex]
+	const next = trainCfg.stations[segmentIndex + 1]
+	if (!curr || !next) return null
+	return `${curr.stationCode}-${next.stationCode}`
+}
+
+const isBlockAffectedByDisruption = (
+	disruption: Disruption,
+	stations: Station[],
+	block: BlockSection,
+	simTimeMin: number
+) => {
+	const startDist = getDistanceForStation(stations, disruption.startStation)
+	const endDist = getDistanceForStation(stations, disruption.endStation)
+	const blockStart = getDistanceForStation(stations, block.fromStation)
+	const blockEnd = getDistanceForStation(stations, block.toStation)
+	const inWindow =
+		simTimeMin >= disruption.startAtMin && simTimeMin <= disruption.startAtMin + disruption.durationMin
+	const overlaps =
+		Math.max(blockStart, Math.min(startDist, endDist)) <= Math.min(blockEnd, Math.max(startDist, endDist))
+	return inWindow && overlaps
+}
+
+const updateBlockClosures = (
+	blockStates: Record<string, BlockState>,
+	disruptions: Disruption[],
+	stations: Station[],
+	simTimeMin: number
+) => {
+	Object.values(blockStates).forEach((block) => {
+		block.closed = false
+		block.reason = undefined
+	})
+
+	disruptions.forEach((d) => {
+		Object.values(blockStates).forEach((block) => {
+			if (!isBlockAffectedByDisruption(d, stations, block, simTimeMin)) return
+			const isClosed =
+				d.type === 'track_block' ||
+				d.type === 'maintenance' ||
+				(d.speedReduction?.Passenger ?? 1) <= 0.01 ||
+				(d.speedReduction?.Freight ?? 1) <= 0.01
+			if (isClosed) {
+				block.closed = true
+				block.reason = d.description || d.type
+			}
+		})
+	})
+}
 
 const isDisruptionActive = (
 	disruption: Disruption,
@@ -160,6 +263,8 @@ const computeSegmentSpeed = (
 }
 
 export const createSimulationEngine = (config: EngineConfig) => {
+	const blockSections = buildBlockSections(config.stations)
+
 	let state: SimulationSnapshot = {
 		simTimeMin: 0,
 		running: false,
@@ -167,6 +272,7 @@ export const createSimulationEngine = (config: EngineConfig) => {
 		trains: {},
 		speedMultiplier: 1,
 		prioritizationDecisions: [],
+		blockStates: initBlockStates(blockSections),
 	}
 
 	const subscribers = new Set<Subscriber>()
@@ -205,7 +311,9 @@ export const createSimulationEngine = (config: EngineConfig) => {
 			trains: initTrains(),
 			speedMultiplier: state.speedMultiplier,
 			prioritizationDecisions: state.prioritizationDecisions,
+			blockStates: initBlockStates(blockSections),
 		}
+		updateBlockClosures(state.blockStates, state.disruptions, config.stations, state.simTimeMin)
 		notify()
 	}
 
@@ -224,22 +332,28 @@ export const createSimulationEngine = (config: EngineConfig) => {
 		simTimeMin: number
 	) => {
 		const targetKm = getDistanceForStation(config.stations, targetStationCode)
-		const segMin = Math.min(currentKm, targetKm)
-		const segMax = Math.max(currentKm, targetKm)
+	const segMin = Math.min(currentKm, targetKm)
+	const segMax = Math.max(currentKm, targetKm)
 
-		return state.disruptions.some((d) => {
-			// time window check
-			const inWindow = simTimeMin >= d.startAtMin && simTimeMin <= d.startAtMin + d.durationMin
-			if (!inWindow) return false
+	return state.disruptions.some((d) => {
+		const inWindow = simTimeMin >= d.startAtMin && simTimeMin <= d.startAtMin + d.durationMin
+		if (!inWindow) return false
 
-			const startDist = getDistanceForStation(config.stations, d.startStation)
-			const endDist = getDistanceForStation(config.stations, d.endStation)
-			const disMin = Math.min(startDist, endDist)
-			const disMax = Math.max(startDist, endDist)
+		const startDist = getDistanceForStation(config.stations, d.startStation)
+		const endDist = getDistanceForStation(config.stations, d.endStation)
+		const disMin = Math.min(startDist, endDist)
+		const disMax = Math.max(startDist, endDist)
 
-			// segment overlaps disrupted section
-			return segMax >= disMin && segMin <= disMax
-		})
+		const overlaps = segMax >= disMin && segMin <= disMax
+		if (!overlaps) return false
+
+		const closed =
+			d.type === 'track_block' ||
+			d.type === 'maintenance' ||
+			(d.speedReduction?.Passenger ?? 1) <= 0.01 ||
+			(d.speedReduction?.Freight ?? 1) <= 0.01
+		return closed
+	})
 	}
 
 	const advanceTrain = (
@@ -260,7 +374,52 @@ export const createSimulationEngine = (config: EngineConfig) => {
 				return
 			}
 
-			// Block movement if the next segment is under active disruption
+			const blockId = getBlockIdForSegment(trainCfg, runtime.segmentIndex)
+			const blockState = blockId ? state.blockStates[blockId] : undefined
+
+			// If block is closed (maintenance/TA) halt and queue
+			if (blockState && blockState.closed) {
+				if (!blockState.queue.includes(runtime.trainId) && blockState.occupiedBy !== runtime.trainId) {
+					blockState.queue.push(runtime.trainId)
+				}
+				runtime.status = 'halted'
+				runtime.currentSpeedKmph = 0
+				addHistoryPoint(runtime, snapshotTimeMin + (deltaMin - remaining))
+				return
+			}
+
+			if (blockState) {
+				const isOccupant = blockState.occupiedBy === runtime.trainId
+				const queueHead = blockState.queue[0]
+
+				// If another train holds the block, queue and wait
+				if (!isOccupant && blockState.occupiedBy && blockState.occupiedBy !== runtime.trainId) {
+					if (!blockState.queue.includes(runtime.trainId)) blockState.queue.push(runtime.trainId)
+					runtime.status = 'halted'
+					runtime.currentSpeedKmph = 0
+					addHistoryPoint(runtime, snapshotTimeMin + (deltaMin - remaining))
+					return
+				}
+
+				// If block free but queue exists, respect queue order
+				if (!isOccupant && !blockState.occupiedBy) {
+					if (queueHead && queueHead !== runtime.trainId) {
+						if (!blockState.queue.includes(runtime.trainId)) blockState.queue.push(runtime.trainId)
+						runtime.status = 'halted'
+						runtime.currentSpeedKmph = 0
+						addHistoryPoint(runtime, snapshotTimeMin + (deltaMin - remaining))
+						return
+					}
+					// Occupy block
+					blockState.occupiedBy = runtime.trainId
+					if (queueHead === runtime.trainId) {
+						blockState.queue.shift()
+					}
+				}
+			}
+
+			// Block movement if the next segment is under active disruption.
+			// This models a full block / TA-912 scenario – no movement through the section.
 			const blocked = isSegmentBlockedByDisruption(
 				runtime.distanceKm,
 				nextSegment.stationCode,
@@ -269,7 +428,9 @@ export const createSimulationEngine = (config: EngineConfig) => {
 			if (blocked) {
 				runtime.status = 'halted'
 				runtime.currentSpeedKmph = 0
-				addHistoryPoint(runtime, snapshotTimeMin - remaining + deltaMin)
+				addHistoryPoint(runtime, snapshotTimeMin + (deltaMin - remaining))
+				// NOTE: We purposely do NOT advance `remaining` so train stays pinned here
+				// until disruption window is over or a reroute decision is applied.
 				return
 			}
 
@@ -331,6 +492,12 @@ export const createSimulationEngine = (config: EngineConfig) => {
 				runtime.delayMin = Math.max(arrivalTime - scheduledArrival, 0)
 				runtime.dwellRemaining = findStation(config.stations, nextStationCode)?.haltMinutes ?? 0
 				runtime.segmentIndex += 1
+				// Release block on arrival
+				if (blockState && blockState.occupiedBy === runtime.trainId) {
+					blockState.occupiedBy = null
+					blockState.traversals += 1
+					blockState.lastReleasedAt = state.simTimeMin
+				}
 				remaining -= timeToNext
 				addHistoryPoint(runtime, arrivalTime)
 				if (!trainCfg.stations[runtime.segmentIndex + 1]) {
@@ -357,6 +524,8 @@ export const createSimulationEngine = (config: EngineConfig) => {
 		lastFrame = now
 		const deltaMin = (deltaMs / 60000) * state.speedMultiplier
 		state.simTimeMin += deltaMin
+
+		updateBlockClosures(state.blockStates, state.disruptions, config.stations, state.simTimeMin)
 
 		for (const trainCfg of config.trains) {
 			const runtime = state.trains[trainCfg.trainId]
@@ -386,6 +555,7 @@ export const createSimulationEngine = (config: EngineConfig) => {
 		state.disruptions = disruptions
 		const latestEnd = disruptions.map((d) => d.startAtMin + d.durationMin).sort((a, b) => b - a)[0]
 		if (latestEnd) state.lastDisruptionEnd = latestEnd
+		updateBlockClosures(state.blockStates, state.disruptions, config.stations, state.simTimeMin)
 		lastFrame = now
 		notify()
 	}
@@ -395,6 +565,7 @@ export const createSimulationEngine = (config: EngineConfig) => {
 		state.disruptions = [...state.disruptions, disruption]
 		const latestEnd = state.disruptions.map((d) => d.startAtMin + d.durationMin).sort((a, b) => b - a)[0]
 		if (latestEnd) state.lastDisruptionEnd = latestEnd
+		updateBlockClosures(state.blockStates, state.disruptions, config.stations, state.simTimeMin)
 		lastFrame = now
 		notify()
 	}
@@ -403,6 +574,7 @@ export const createSimulationEngine = (config: EngineConfig) => {
 		const now = performance.now()
 		state.disruptions = []
 		state.lastDisruptionEnd = undefined
+		updateBlockClosures(state.blockStates, state.disruptions, config.stations, state.simTimeMin)
 		lastFrame = now
 		notify()
 	}
@@ -462,6 +634,7 @@ export const createSimulationEngine = (config: EngineConfig) => {
 
 	// initialize
 	state.trains = initTrains()
+	updateBlockClosures(state.blockStates, state.disruptions, config.stations, state.simTimeMin)
 	rafId = requestAnimationFrame((t) => {
 		lastFrame = t
 		step(t)
