@@ -34,21 +34,21 @@ const STATIONS: Station[] = [
 	{ code: 'BPL', name: 'Bhopal Junction', distanceKm: 96, haltMinutes: 0, lat: 23.2599, lon: 77.4029 },
 ]
 
-// Generate 10 passenger trains
+// Generate passenger trains - both downline (ET to BPL) and upline (BPL to ET)
 const generatePassengerTrains = (): TrainConfig[] => {
 	const trains: TrainConfig[] = []
-	const colors = ['#d32f2f', '#ef4444', '#f87171', '#dc2626', '#b91c1c', '#991b1b', '#7f1d1d', '#991b1b', '#b91c1c', '#dc2626']
 	
-	for (let i = 0; i < 10; i++) {
-		const startTime = i * 45 // Every 45 minutes
+	// Downline trains (ET → BPL) - 8 trains
+	for (let i = 0; i < 8; i++) {
+		const startTime = i * 50 // Every 50 minutes
 		const baseSpeed = 90 + (i % 3) * 5 // Vary speed slightly
 		
 		trains.push({
-			trainId: `P${12900 + i}`,
+			trainId: `P${12900 + i}DN`, // DN for downline
 			trainType: 'Passenger',
 			speedKmph: baseSpeed,
 			speedProfile: { cruise: baseSpeed + 10, slow: 55 },
-			color: colors[i],
+			color: '#b91c1c', // Will be overridden by direction-based colors
 			stations: [
 				{ stationCode: 'ET', scheduledTimeMin: startTime },
 				{ stationCode: 'NDPM', scheduledTimeMin: startTime + 15 },
@@ -60,25 +60,48 @@ const generatePassengerTrains = (): TrainConfig[] => {
 			],
 		})
 	}
+	
+	// Upline trains (BPL → ET) - 6 trains
+	for (let i = 0; i < 6; i++) {
+		const startTime = 100 + i * 55 // Start after some downline trains
+		const baseSpeed = 88 + (i % 3) * 5 // Vary speed slightly
+		
+		trains.push({
+			trainId: `P${13000 + i}UP`, // UP for upline
+			trainType: 'Passenger',
+			speedKmph: baseSpeed,
+			speedProfile: { cruise: baseSpeed + 10, slow: 55 },
+			color: '#2563eb', // Will be overridden by direction-based colors
+			stations: [
+				{ stationCode: 'BPL', scheduledTimeMin: startTime },
+				{ stationCode: 'RKMP', scheduledTimeMin: startTime + 10 },
+				{ stationCode: 'MSO', scheduledTimeMin: startTime + 20 },
+				{ stationCode: 'MDDP', scheduledTimeMin: startTime + 30 },
+				{ stationCode: 'ODG', scheduledTimeMin: startTime + 45 },
+				{ stationCode: 'NDPM', scheduledTimeMin: startTime + 65 },
+				{ stationCode: 'ET', scheduledTimeMin: startTime + 80 },
+			],
+		})
+	}
+	
 	return trains
 }
 
-// Generate 20 freight trains
+// Generate freight trains - both downline (ET to BPL) and upline (BPL to ET)
 const generateFreightTrains = (): TrainConfig[] => {
 	const trains: TrainConfig[] = []
-	const colors = ['#2e7d32', '#16a34a', '#22c55e', '#15803d', '#166534', '#14532d', '#15803d', '#166534', '#14532d', '#16a34a',
-	                 '#22c55e', '#15803d', '#166534', '#14532d', '#16a34a', '#22c55e', '#15803d', '#166534', '#14532d', '#16a34a']
 	
-	for (let i = 0; i < 20; i++) {
-		const startTime = i * 30 // Every 30 minutes
+	// Downline trains (ET → BPL) - 12 trains
+	for (let i = 0; i < 12; i++) {
+		const startTime = i * 35 // Every 35 minutes
 		const baseSpeed = 70 + (i % 3) * 3 // Vary speed slightly
 		
 		trains.push({
-			trainId: `F${80000 + i}`,
+			trainId: `F${80000 + i}DN`, // DN for downline
 			trainType: 'Freight',
 			speedKmph: baseSpeed,
 			speedProfile: { cruise: baseSpeed + 10, slow: 45 },
-			color: colors[i],
+			color: '#065f46', // Will be overridden by direction-based colors
 			stations: [
 				{ stationCode: 'ET', scheduledTimeMin: startTime },
 				{ stationCode: 'NDPM', scheduledTimeMin: startTime + 20 },
@@ -90,6 +113,30 @@ const generateFreightTrains = (): TrainConfig[] => {
 			],
 		})
 	}
+	
+	// Upline trains (BPL → ET) - 10 trains
+	for (let i = 0; i < 10; i++) {
+		const startTime = 120 + i * 40 // Start after some downline trains
+		const baseSpeed = 68 + (i % 3) * 3 // Vary speed slightly
+		
+		trains.push({
+			trainId: `F${80100 + i}UP`, // UP for upline
+			trainType: 'Freight',
+			speedKmph: baseSpeed,
+			speedProfile: { cruise: baseSpeed + 10, slow: 45 },
+			color: '#7c3aed', // Will be overridden by direction-based colors
+			stations: [
+				{ stationCode: 'BPL', scheduledTimeMin: startTime },
+				{ stationCode: 'RKMP', scheduledTimeMin: startTime + 15 },
+				{ stationCode: 'MSO', scheduledTimeMin: startTime + 30 },
+				{ stationCode: 'MDDP', scheduledTimeMin: startTime + 50 },
+				{ stationCode: 'ODG', scheduledTimeMin: startTime + 75 },
+				{ stationCode: 'NDPM', scheduledTimeMin: startTime + 100 },
+				{ stationCode: 'ET', scheduledTimeMin: startTime + 120 },
+			],
+		})
+	}
+	
 	return trains
 }
 
@@ -290,13 +337,14 @@ export default function DigitalTwinSimulation() {
 		}
 		
 		engine.applyPrioritizationDecision(decision)
+		// KPIs will automatically update via snapshot subscription
 		
 		const systemDelayReduction = Math.round(rec.detailedImpact.whatIfApplied.totalSystemDelayReduction)
 		const affectedCount = rec.detailedImpact.affectedTrains.length
 		
 		showNotif({
 			title: '✅ Decision Applied Successfully',
-			description: `${rec.description}. Expected system delay reduction: ~${systemDelayReduction} minutes. Affecting ${affectedCount} train(s). Check graph for visualization.`,
+			description: `${rec.description}. Expected system delay reduction: ~${systemDelayReduction} minutes. Affecting ${affectedCount} train(s). KPIs updating in real-time.`,
 			variant: 'success'
 		})
 	}
@@ -327,13 +375,14 @@ export default function DigitalTwinSimulation() {
 			engine.applyPrioritizationDecision(decision)
 			engine.overridePrioritizationDecision(rec.id)
 		}
+		// KPIs will automatically update via snapshot subscription
 		
 		const systemDelayIncrease = Math.round(rec.detailedImpact.whatIfOverridden.totalSystemDelayIncrease)
 		const affectedCount = rec.detailedImpact.affectedTrains.length
 		
 		showNotif({
 			title: '⚠️ Decision Overridden',
-			description: `Override: ${rec.description}. Expected system delay increase: ~${systemDelayIncrease} minutes. Affecting ${affectedCount} train(s). Alternative scenario will be applied.`,
+			description: `Override: ${rec.description}. Expected system delay increase: ~${systemDelayIncrease} minutes. Affecting ${affectedCount} train(s). KPIs updating in real-time.`,
 			variant: 'warning'
 		})
 	}
@@ -375,8 +424,191 @@ export default function DigitalTwinSimulation() {
 		? freightDelays.reduce((a, b) => a + b, 0) / freightDelays.length 
 		: 0
 
+	// Calculate comprehensive freight train KPIs with disruption impact
+	// This recalculates whenever snapshot changes (disruptions, decisions, train states)
+	const freightKPIs = useMemo(() => {
+		const freightTrains = TRAINS.filter(t => t.trainType === 'Freight')
+		const freightRuntimes = freightTrains
+			.map(t => ({ config: t, runtime: snapshot.trains[t.trainId] }))
+			.filter(({ runtime }) => runtime !== undefined)
+
+		// Get active disruptions (includes newly added ones)
+		const activeDisruptions = (snapshot.disruptions || []).filter(d => {
+			const isActive = snapshot.simTimeMin >= d.startAtMin && 
+			                 snapshot.simTimeMin <= d.startAtMin + d.durationMin
+			return isActive
+		})
+
+		// Get applied prioritization decisions affecting freight trains
+		const appliedDecisions = (snapshot.prioritizationDecisions || []).filter(d => 
+			d.applied && !d.overridden
+		)
+		const freightDecisions = appliedDecisions.filter(d => {
+			const train = TRAINS.find(t => t.trainId === d.trainId)
+			return train?.trainType === 'Freight'
+		})
+
+		if (freightRuntimes.length === 0) {
+			return {
+				totalCount: freightTrains.length,
+				activeCount: 0,
+				runningCount: 0,
+				completedCount: 0,
+				haltedCount: 0,
+				avgSpeed: 0,
+				avgDelay: 0,
+				maxDelay: 0,
+				totalDistance: 0,
+				avgDistance: 0,
+				onTimeCount: 0,
+				onTimePercent: 0,
+				totalDistanceTraveled: 0,
+				activeDisruptionsCount: activeDisruptions.length,
+				trainsAffectedByDisruptions: 0,
+				avgSpeedReduction: 0,
+				delayDueToDisruptions: 0,
+				disruptionImpact: 'None',
+				prioritizationDecisionsCount: freightDecisions.length,
+			}
+		}
+
+		const delays = freightRuntimes.map(({ runtime }) => runtime.delayMin)
+		const distances = freightRuntimes.map(({ runtime }) => runtime.distanceKm)
+		
+		// Calculate average speed using speed samples (more accurate than current speed)
+		const speeds: number[] = []
+		for (const { runtime } of freightRuntimes) {
+			if (runtime.speedSamples && runtime.speedSamples.length > 0) {
+				// Use average of speed samples (excludes zeros/halts)
+				const activeSpeeds = runtime.speedSamples.filter(s => s > 0)
+				if (activeSpeeds.length > 0) {
+					const avgSpeed = activeSpeeds.reduce((a, b) => a + b, 0) / activeSpeeds.length
+					speeds.push(avgSpeed)
+				} else if (runtime.currentSpeedKmph > 0) {
+					// Fallback to current speed if no samples yet
+					speeds.push(runtime.currentSpeedKmph)
+				}
+			} else if (runtime.currentSpeedKmph > 0) {
+				// Fallback to current speed if no samples available
+				speeds.push(runtime.currentSpeedKmph)
+			}
+		}
+		
+		// Calculate total distance traveled from history
+		const totalDistanceTraveled = freightRuntimes.reduce((sum, { runtime }) => {
+			if (runtime.history.length < 2) return sum
+			let dist = 0
+			for (let i = 1; i < runtime.history.length; i++) {
+				dist += Math.abs(runtime.history[i].distanceKm - runtime.history[i - 1].distanceKm)
+			}
+			return sum + dist
+		}, 0)
+
+		const statusCounts = freightRuntimes.reduce((acc, { runtime }) => {
+			acc[runtime.status] = (acc[runtime.status] || 0) + 1
+			return acc
+		}, {} as Record<string, number>)
+
+		const onTimeCount = delays.filter(d => d <= 5).length
+
+		// Calculate disruption impact on freight trains
+		const trainsAffectedByDisruptions = new Set<string>()
+		const speedReductions: number[] = []
+		let totalDelayFromDisruptions = 0
+
+		for (const { config, runtime } of freightRuntimes) {
+			for (const disruption of activeDisruptions) {
+				const startDist = STATIONS.find(s => s.code === disruption.startStation)?.distanceKm ?? 0
+				const endDist = STATIONS.find(s => s.code === disruption.endStation)?.distanceKm ?? startDist
+				const minDist = Math.min(startDist, endDist)
+				const maxDist = Math.max(startDist, endDist)
+				
+				// Check if train is in disrupted section
+				const inDisruptedSection = runtime.distanceKm >= minDist && runtime.distanceKm <= maxDist
+				
+				// Check if train will pass through this section
+				const willPassThrough = config.stations.some(st => {
+					const stationDist = STATIONS.find(s => s.code === st.stationCode)?.distanceKm ?? -1
+					return stationDist >= minDist && stationDist <= maxDist
+				})
+				
+				if (inDisruptedSection || willPassThrough) {
+					trainsAffectedByDisruptions.add(config.trainId)
+					
+					// Calculate speed reduction impact
+					const freightSpeedReduction = disruption.speedReduction?.Freight ?? 1
+					if (freightSpeedReduction < 1) {
+						const baseSpeed = config.speedKmph
+						const reducedSpeed = baseSpeed * freightSpeedReduction
+						const speedLoss = baseSpeed - reducedSpeed
+						speedReductions.push(speedLoss)
+					}
+					
+					// Estimate delay contribution from disruption
+					if (inDisruptedSection) {
+						// If train is currently in disruption, estimate delay impact
+						const expectedSpeed = config.speedKmph * (disruption.speedReduction?.Freight ?? 1)
+						const normalTime = (maxDist - minDist) / config.speedKmph * 60 // minutes
+						const disruptedTime = (maxDist - minDist) / Math.max(expectedSpeed, 1) * 60
+						totalDelayFromDisruptions += Math.max(0, disruptedTime - normalTime)
+					}
+				}
+			}
+		}
+
+		const avgSpeedReduction = speedReductions.length > 0
+			? Number((speedReductions.reduce((a, b) => a + b, 0) / speedReductions.length).toFixed(1))
+			: 0
+
+		const delayDueToDisruptions = Number((totalDelayFromDisruptions / Math.max(trainsAffectedByDisruptions.size, 1)).toFixed(1))
+
+		// Determine disruption impact level
+		let disruptionImpact = 'None'
+		if (activeDisruptions.length > 0) {
+			if (trainsAffectedByDisruptions.size >= freightRuntimes.length * 0.5) {
+				disruptionImpact = 'High'
+			} else if (trainsAffectedByDisruptions.size > 0) {
+				disruptionImpact = 'Medium'
+			} else {
+				disruptionImpact = 'Low'
+			}
+		}
+
+		return {
+			totalCount: freightTrains.length,
+			activeCount: freightRuntimes.length,
+			runningCount: statusCounts.running || 0,
+			completedCount: statusCounts.completed || 0,
+			haltedCount: statusCounts.halted || 0,
+			avgSpeed: speeds.length > 0 
+				? Number((speeds.reduce((a, b) => a + b, 0) / speeds.length).toFixed(1))
+				: 0,
+			avgDelay: delays.length > 0
+				? Number((delays.reduce((a, b) => a + b, 0) / delays.length).toFixed(1))
+				: 0,
+			maxDelay: delays.length > 0
+				? Number(Math.max(...delays).toFixed(1))
+				: 0,
+			totalDistance: Number(distances.reduce((a, b) => a + b, 0).toFixed(1)),
+			avgDistance: distances.length > 0
+				? Number((distances.reduce((a, b) => a + b, 0) / distances.length).toFixed(1))
+				: 0,
+			onTimeCount,
+			onTimePercent: freightRuntimes.length > 0
+				? Number(((onTimeCount / freightRuntimes.length) * 100).toFixed(1))
+				: 0,
+			totalDistanceTraveled: Number(totalDistanceTraveled.toFixed(1)),
+			activeDisruptionsCount: activeDisruptions.length,
+			trainsAffectedByDisruptions: trainsAffectedByDisruptions.size,
+			avgSpeedReduction,
+			delayDueToDisruptions,
+			disruptionImpact,
+			prioritizationDecisionsCount: freightDecisions.length,
+		}
+	}, [snapshot, snapshot.disruptions, snapshot.prioritizationDecisions, snapshot.trains, snapshot.simTimeMin])
+
 	return (
-		<div className="min-h-screen bg-slate-50 p-6 space-y-6">
+		<div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 p-6 space-y-6">
 			{/* Header Section */}
 			<header className="flex flex-wrap items-center justify-between gap-4 mb-2">
 				<div className="flex-1 min-w-0">
@@ -418,54 +650,9 @@ export default function DigitalTwinSimulation() {
 					</div>
 				</div>
 				
-				{/* Right Sidebar: Scenario, Disruption Controller, KPIs */}
+				{/* Right Sidebar: Disruption Controller, KPIs */}
 				<div className="xl:col-span-1 space-y-4">
-					{/* Scenario Panel */}
-					<div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-						<div className="mb-3">
-							<div className="text-xs uppercase font-semibold text-slate-500 mb-2">Scenario</div>
-							<select
-								value={selectedScenario.id}
-								onChange={(e) => {
-									const next = scenarios.find((s) => s.id === e.target.value)
-									if (next) setSelectedScenario(next)
-								}}
-								disabled={loadingScenarios}
-								className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-								{loadingScenarios ? (
-									<option>Loading scenarios...</option>
-								) : (
-									scenarios.map((s) => (
-										<option key={s.id} value={s.id}>
-											{s.name}
-										</option>
-									))
-								)}
-							</select>
-						</div>
-						<div className="space-y-2 max-h-48 overflow-y-auto">
-							{selectedScenario.disruptions.length === 0 && (
-								<div className="text-sm text-slate-600 py-1">No active disruptions. Baseline run.</div>
-							)}
-							{selectedScenario.disruptions.map((d) => (
-								<div
-									key={d.id}
-									className={`rounded-xl border px-3 py-2 text-sm ${disruptionColor[d.type]}`}
-								>
-									<div className="font-semibold text-xs mb-1">{d.description}</div>
-									<div className="text-xs opacity-90">
-										{d.startStation} → {d.endStation} • {d.durationMin} min • starts @ {d.startAtMin} min
-									</div>
-									<div className="text-xs opacity-80 mt-1">
-										Speed factors P/F: {Math.round(d.speedReduction.Passenger * 100)}% / {Math.round(d.speedReduction.Freight * 100)}%
-									</div>
-								</div>
-							))}
-						</div>
-					</div>
-
-					{/* Disruption Controller - Below Scenario */}
+					{/* Disruption Controller */}
 					<DisruptionController
 						stations={STATIONS}
 						onApplyDisruption={(disruption) => {
@@ -486,55 +673,141 @@ export default function DigitalTwinSimulation() {
 						}}
 					/>
 
-					{/* Live KPIs Panel */}
-					<div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-						<div className="text-xs uppercase text-slate-500 font-semibold mb-2">Live KPIs</div>
+					{/* Freight Train KPIs Panel */}
+					<div className="rounded-2xl border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 p-4 shadow-sm space-y-3">
+						<div className="flex items-center gap-2 mb-2">
+							<div className="text-xs uppercase text-green-700 font-bold">🚂 Freight Train KPIs</div>
+							<div className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+								Live
+							</div>
+							{freightKPIs.activeDisruptionsCount > 0 && (
+								<div className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+									freightKPIs.disruptionImpact === 'High' 
+										? 'bg-red-100 text-red-700'
+										: freightKPIs.disruptionImpact === 'Medium'
+										? 'bg-amber-100 text-amber-700'
+										: 'bg-yellow-100 text-yellow-700'
+								}`}>
+									⚠ {freightKPIs.activeDisruptionsCount} Active
+								</div>
+							)}
+						</div>
 						<div className="grid grid-cols-2 gap-3">
-							<div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
-								<div className="text-xs text-blue-700 font-semibold mb-1">OTP</div>
-								<div className="text-2xl font-bold text-blue-900">
-									{isNaN(kpis.otpPercent) ? 0 : kpis.otpPercent}%
+							<div className="rounded-xl bg-white border-2 border-green-200 p-3 shadow-sm">
+								<div className="text-xs text-green-700 font-semibold mb-1">Total Freight Trains</div>
+								<div className="text-2xl font-bold text-green-900">
+									{freightKPIs.activeCount}/{freightKPIs.totalCount}
+								</div>
+								<div className="text-[10px] text-green-600 mt-1">
+									{freightKPIs.runningCount} running • {freightKPIs.completedCount} completed • {freightKPIs.haltedCount} halted
 								</div>
 							</div>
-							<div className="rounded-xl bg-amber-50 border border-amber-100 p-3">
-								<div className="text-xs text-amber-700 font-semibold mb-1">Passenger delay</div>
-								<div className="text-xl font-bold text-amber-900">
-									{isNaN(passengerDelay) ? '0.0' : passengerDelay.toFixed(1)} min
+							<div className="rounded-xl bg-white border-2 border-green-200 p-3 shadow-sm">
+								<div className="text-xs text-green-700 font-semibold mb-1">Avg Speed</div>
+								<div className="text-2xl font-bold text-green-900">
+									{freightKPIs.avgSpeed} km/h
+								</div>
+								<div className="text-[10px] text-green-600 mt-1">
+									{freightKPIs.avgSpeedReduction > 0 && (
+										<span className="text-red-600">-{freightKPIs.avgSpeedReduction} km/h from disruptions</span>
+									)}
+									{freightKPIs.avgSpeedReduction === 0 && 'Current average'}
 								</div>
 							</div>
-							<div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
-								<div className="text-xs text-emerald-700 font-semibold mb-1">Freight delay</div>
-								<div className="text-xl font-bold text-emerald-900">
-									{isNaN(freightDelay) ? '0.0' : freightDelay.toFixed(1)} min
+							<div className="rounded-xl bg-white border-2 border-green-200 p-3 shadow-sm">
+								<div className="text-xs text-green-700 font-semibold mb-1">Avg Delay</div>
+								<div className="text-2xl font-bold text-green-900">
+									{freightKPIs.avgDelay} min
+								</div>
+								<div className="text-[10px] text-green-600 mt-1">
+									{freightKPIs.delayDueToDisruptions > 0 && (
+										<span className="text-red-600">+{freightKPIs.delayDueToDisruptions} min from disruptions</span>
+									)}
+									{freightKPIs.delayDueToDisruptions === 0 && 'Across all freight'}
 								</div>
 							</div>
-							<div className="rounded-xl bg-slate-50 border border-slate-100 p-3">
-								<div className="text-xs text-slate-700 font-semibold mb-1">Delay ratio P/F</div>
-								<div className="text-xl font-bold text-slate-900">
-									{isNaN(kpis.delayRatioPassengerFreight) || !isFinite(kpis.delayRatioPassengerFreight) 
-										? 'N/A' 
-										: kpis.delayRatioPassengerFreight.toFixed(2)}
+							<div className="rounded-xl bg-white border-2 border-green-200 p-3 shadow-sm">
+								<div className="text-xs text-green-700 font-semibold mb-1">Max Delay</div>
+								<div className="text-2xl font-bold text-red-600">
+									{freightKPIs.maxDelay} min
 								</div>
+								<div className="text-[10px] text-green-600 mt-1">Worst case</div>
 							</div>
 						</div>
-						<div className="grid grid-cols-1 gap-2 text-sm pt-2 border-t border-slate-200">
-							<div className="flex items-center justify-between py-1">
-								<span className="text-slate-600">Avg delay Passenger</span>
-								<span className="font-semibold text-slate-900">
-									{kpis.avgDelayByType['Passenger'] ?? 0} min
+						
+						{/* Disruption Impact Section */}
+						{freightKPIs.activeDisruptionsCount > 0 && (
+							<div className="rounded-xl bg-red-50 border-2 border-red-200 p-3 shadow-sm">
+								<div className="flex items-center justify-between mb-2">
+									<div className="text-xs text-red-700 font-bold">⚠ Disruption Impact</div>
+									<div className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+										freightKPIs.disruptionImpact === 'High' 
+											? 'bg-red-200 text-red-800'
+											: freightKPIs.disruptionImpact === 'Medium'
+											? 'bg-amber-200 text-amber-800'
+											: 'bg-yellow-200 text-yellow-800'
+									}`}>
+										{freightKPIs.disruptionImpact}
+									</div>
+								</div>
+								<div className="grid grid-cols-2 gap-2 text-xs">
+									<div>
+										<span className="text-red-600 font-medium">Trains Affected:</span>
+										<span className="ml-1 font-bold text-red-800">
+											{freightKPIs.trainsAffectedByDisruptions}/{freightKPIs.activeCount}
+										</span>
+									</div>
+									<div>
+										<span className="text-red-600 font-medium">Active Disruptions:</span>
+										<span className="ml-1 font-bold text-red-800">
+											{freightKPIs.activeDisruptionsCount}
+										</span>
+									</div>
+								</div>
+							</div>
+						)}
+
+						<div className="grid grid-cols-1 gap-2 text-sm pt-2 border-t border-green-200">
+							<div className="flex items-center justify-between py-1.5 bg-white/50 rounded-lg px-2">
+								<span className="text-green-700 font-medium">Average Speed</span>
+								<span className="font-bold text-green-900">
+									{freightKPIs.avgSpeed} km/h
+									{freightKPIs.avgSpeedReduction > 0 && (
+										<span className="text-red-600 text-xs ml-2">(-{freightKPIs.avgSpeedReduction} km/h)</span>
+									)}
 								</span>
 							</div>
-							<div className="flex items-center justify-between py-1">
-								<span className="text-slate-600">Avg delay Freight</span>
-								<span className="font-semibold text-slate-900">{kpis.avgDelayByType['Freight'] ?? 0} min</span>
+							{freightKPIs.prioritizationDecisionsCount > 0 && (
+								<div className="flex items-center justify-between py-1.5 bg-blue-50 rounded-lg px-2 border border-blue-200">
+									<span className="text-blue-700 font-medium">Active Decisions</span>
+									<span className="font-bold text-blue-900">
+										{freightKPIs.prioritizationDecisionsCount} applied
+									</span>
+								</div>
+							)}
+							<div className="flex items-center justify-between py-1.5 bg-white/50 rounded-lg px-2">
+								<span className="text-green-700 font-medium">On-Time Performance</span>
+								<span className="font-bold text-green-900">
+									{freightKPIs.onTimePercent}% ({freightKPIs.onTimeCount}/{freightKPIs.activeCount || 1})
+								</span>
 							</div>
-							<div className="flex items-center justify-between py-1">
-								<span className="text-slate-600">Recovery time</span>
-								<span className="font-semibold text-slate-900">{kpis.recoveryTimeAfterDisruption} min</span>
+							<div className="flex items-center justify-between py-1.5 bg-white/50 rounded-lg px-2">
+								<span className="text-green-700 font-medium">Total Distance Traveled</span>
+								<span className="font-bold text-green-900">
+									{freightKPIs.totalDistanceTraveled} km
+								</span>
 							</div>
-							<div className="flex items-center justify-between py-1">
-								<span className="text-slate-600">Trains affected</span>
-								<span className="font-semibold text-slate-900">{kpis.trainsAffected}/{TRAINS.length}</span>
+							<div className="flex items-center justify-between py-1.5 bg-white/50 rounded-lg px-2">
+								<span className="text-green-700 font-medium">Avg Distance Covered</span>
+								<span className="font-bold text-green-900">
+									{freightKPIs.avgDistance} km
+								</span>
+							</div>
+							<div className="flex items-center justify-between py-1.5 bg-white/50 rounded-lg px-2">
+								<span className="text-green-700 font-medium">Total Distance (Current)</span>
+								<span className="font-bold text-green-900">
+									{freightKPIs.totalDistance} km
+								</span>
 							</div>
 						</div>
 					</div>

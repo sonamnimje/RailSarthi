@@ -22,9 +22,111 @@ const trainTypeDefaults: Record<'Passenger' | 'Freight', string> = {
 	Freight: '#065f46', // dark green
 }
 
+// Color schemes for upline and downline trains
+const uplineColors: Record<'Passenger' | 'Freight', string> = {
+	Passenger: '#2563eb', // blue for upline passenger
+	Freight: '#7c3aed', // purple for upline freight
+}
+
+const downlineColors: Record<'Passenger' | 'Freight', string> = {
+	Passenger: '#b91c1c', // red for downline passenger
+	Freight: '#065f46', // dark green for downline freight
+}
+
+// Determine if train is upline (going from higher distance to lower) or downline (lower to higher)
+const getTrainDirection = (train: TrainConfig, stations: Station[]): 'upline' | 'downline' => {
+	if (train.stations.length < 2) return 'downline' // default
+	
+	const firstStation = stations.find(s => s.code === train.stations[0].stationCode)
+	const lastStation = stations.find(s => s.code === train.stations[train.stations.length - 1].stationCode)
+	
+	if (!firstStation || !lastStation) return 'downline' // default
+	
+	// If first station distance < last station distance, it's downline (going forward)
+	// If first station distance > last station distance, it's upline (going backward)
+	return firstStation.distanceKm < lastStation.distanceKm ? 'downline' : 'upline'
+}
+
 const isWaitingSegment = (aDist: number, bDist: number) => Math.abs(aDist - bDist) < 0.01
 const isFreight = (type: string) => type === 'Freight'
 const dashForFreight = (trainType: string) => (isFreight(trainType) ? '8,6' : undefined)
+
+// Mock freight cargo types based on train ID (consistent per ID)
+const getFreightCargo = (trainId: string): string => {
+	const cargoTypes = [
+		'Coal',
+		'Iron Ore',
+		'Cement',
+		'Food Grains',
+		'Steel',
+		'Petroleum',
+		'Fertilizers',
+		'Containers',
+		'Automobiles',
+		'Raw Materials',
+		'Machinery',
+		'Textiles',
+	]
+	const hash = trainId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+	return cargoTypes[hash % cargoTypes.length]
+}
+
+const getTrainName = (trainId: string, trainType: string): string => {
+	if (trainType === 'Passenger') {
+		const names = [
+			'Rajdhani Express',
+			'Shatabdi Express',
+			'Duronto Express',
+			'Garib Rath',
+			'Jan Shatabdi',
+			'Intercity Express',
+			'Superfast Express',
+			'Mail Express',
+			'Passenger Special',
+			'Express',
+		]
+		const hash = trainId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+		return names[hash % names.length]
+	}
+	const names = ['Goods Express', 'Freight Special', 'Container Express', 'Coal Special', 'Iron Ore Express', 'Cement Express']
+	const hash = trainId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+	return names[hash % names.length]
+}
+
+const formatTime = (minutes: number): string => {
+	const hours = Math.floor(minutes / 60)
+	const mins = Math.floor(minutes % 60)
+	const secs = Math.floor((minutes % 1) * 60)
+	return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+}
+
+type TrainDetails = {
+	train: TrainConfig
+	runtime: SimulationSnapshot['trains'][string]
+	direction: 'upline' | 'downline'
+	trainName: string
+	freightCargo: string | null
+	originStation?: Station
+	destStation?: Station
+	avgSpeed: number
+	distanceTraveled: number
+	currentSection: number
+	totalSections: number
+	sectionProgress: number
+	scheduledTime: number
+	actualTime: number
+	eta: number
+	currentStation?: Station
+	nextStation?: Station | null
+	throughput: number
+	accuracy: number
+	routeStations: {
+		code: string
+		name: string
+		scheduledTime: number
+		actualTime?: number
+	}[]
+}
 
 export default function TimeDistanceChart({ title, stations, trains, snapshot, visibleTrainIds }: Props) {
 	const [zoomLevel, setZoomLevel] = useState(1)
@@ -32,6 +134,7 @@ export default function TimeDistanceChart({ title, stations, trains, snapshot, v
 	const [isPanning, setIsPanning] = useState(false)
 	const [startPan, setStartPan] = useState({ x: 0, y: 0 })
 	const [hoveredTrain, setHoveredTrain] = useState<string | null>(null)
+	const [selectedTrain, setSelectedTrain] = useState<TrainDetails | null>(null)
 
 	const width = 1100
 	const height = 720
@@ -69,6 +172,118 @@ export default function TimeDistanceChart({ title, stations, trains, snapshot, v
 	const distanceScale = useCallback(
 		(km: number) => chartHeight - (km / maxDistance) * chartHeight,
 		[maxDistance, chartHeight]
+	)
+
+	const buildTrainDetails = useCallback(
+		(train: TrainConfig): TrainDetails | null => {
+			const runtime = snapshot.trains[train.trainId]
+			if (!runtime) return null
+
+			const direction = getTrainDirection(train, stations)
+			const trainName = getTrainName(train.trainId, train.trainType)
+			const freightCargo = train.trainType === 'Freight' ? getFreightCargo(train.trainId) : null
+			const originStation = stations.find((s) => s.code === train.stations[0].stationCode)
+			const destStation = stations.find((s) => s.code === train.stations[train.stations.length - 1].stationCode)
+
+			// Average speed
+			let avgSpeed = 0
+			if (runtime.speedSamples && runtime.speedSamples.length > 0) {
+				const activeSpeeds = runtime.speedSamples.filter((s) => s > 0)
+				avgSpeed = activeSpeeds.length > 0 ? activeSpeeds.reduce((a, b) => a + b, 0) / activeSpeeds.length : runtime.currentSpeedKmph
+			} else {
+				avgSpeed = runtime.currentSpeedKmph
+			}
+
+			// Distance traveled
+			let distanceTraveled = 0
+			if (runtime.history.length >= 2) {
+				for (let i = 1; i < runtime.history.length; i += 1) {
+					distanceTraveled += Math.abs(runtime.history[i].distanceKm - runtime.history[i - 1].distanceKm)
+				}
+			} else {
+				distanceTraveled = runtime.distanceKm
+			}
+
+			const currentSection = runtime.segmentIndex + 1
+			const totalSections = train.stations.length - 1
+			const sectionProgress = totalSections > 0 ? (currentSection / totalSections) * 100 : 0
+
+			const currentStationSchedule = train.stations[runtime.segmentIndex]
+			const scheduledTime = currentStationSchedule ? currentStationSchedule.scheduledTimeMin : 0
+			const actualTime =
+				currentStationSchedule && runtime.actualTimes[currentStationSchedule.stationCode]
+					? runtime.actualTimes[currentStationSchedule.stationCode]
+					: snapshot.simTimeMin
+
+			// Next station
+			const nextStationIndex = train.stations.findIndex((s) => {
+				const st = stations.find((stn) => stn.code === s.stationCode)
+				return st && st.distanceKm > runtime.distanceKm
+			})
+			const nextStation =
+				nextStationIndex >= 0 ? stations.find((s) => s.code === train.stations[nextStationIndex].stationCode) : null
+
+			let eta = 0
+			if (nextStation && runtime.currentSpeedKmph > 0) {
+				const remainingDistance = nextStation.distanceKm - runtime.distanceKm
+				const timeToNext = (remainingDistance / Math.max(runtime.currentSpeedKmph, 1)) * 60
+				eta = snapshot.simTimeMin + timeToNext
+			} else if (nextStationIndex >= 0) {
+				const nextStationSchedule = train.stations[nextStationIndex]
+				eta = nextStationSchedule ? nextStationSchedule.scheduledTimeMin : 0
+			}
+
+			// Throughput (km per hour) using elapsed sim time
+			const elapsedTime = snapshot.simTimeMin > 0 ? snapshot.simTimeMin : 1
+			const throughput = (distanceTraveled / elapsedTime) * 60
+
+			// Accuracy: stations reached on time (<=5 min delay)
+			let onTimeStations = 0
+			train.stations.forEach((st) => {
+				const actual = runtime.actualTimes[st.stationCode]
+				if (actual !== undefined) {
+					const delay = actual - st.scheduledTimeMin
+					if (delay <= 5) onTimeStations += 1
+				}
+			})
+			const accuracy = train.stations.length > 0 ? (onTimeStations / train.stations.length) * 100 : 100
+
+			const routeStations = train.stations.map((st) => {
+				const station = stations.find((s) => s.code === st.stationCode)
+				return {
+					code: st.stationCode,
+					name: station?.name || st.stationCode,
+					scheduledTime: st.scheduledTimeMin,
+					actualTime: runtime.actualTimes[st.stationCode],
+				}
+			})
+
+			const currentStation = stations.find((s) => Math.abs(s.distanceKm - runtime.distanceKm) < 5)
+
+			return {
+				train,
+				runtime,
+				direction,
+				trainName,
+				freightCargo,
+				originStation,
+				destStation,
+				avgSpeed,
+				distanceTraveled,
+				currentSection,
+				totalSections,
+				sectionProgress,
+				scheduledTime,
+				actualTime,
+				eta,
+				currentStation,
+				nextStation,
+				throughput,
+				accuracy,
+				routeStations,
+			}
+		},
+		[snapshot.trains, snapshot.simTimeMin, stations]
 	)
 
 	const trainSegments = useMemo(() => {
@@ -444,7 +659,9 @@ export default function TimeDistanceChart({ title, stations, trains, snapshot, v
 
 						{/* Train paths */}
 						{plannedSegments.map(({ train, segments }) => {
-							const color = train.color || trainTypeDefaults[train.trainType]
+							const direction = getTrainDirection(train, stations)
+							const directionColors = direction === 'upline' ? uplineColors : downlineColors
+							const color = train.color || directionColors[train.trainType]
 							return segments.map((seg, i) => (
 								<line
 									key={`plan-${train.trainId}-${i}`}
@@ -461,16 +678,21 @@ export default function TimeDistanceChart({ title, stations, trains, snapshot, v
 						})}
 
 						{trainSegments.map(({ train, segments }) => {
-							const color = train.color || trainTypeDefaults[train.trainType]
+							const direction = getTrainDirection(train, stations)
+							const directionColors = direction === 'upline' ? uplineColors : downlineColors
+							const color = train.color || directionColors[train.trainType]
 							const hovered = hoveredTrain === train.trainId
 							const runtime = snapshot.trains[train.trainId]
 							const delay = runtime?.delayMin ?? 0
+							const trainDetails = buildTrainDetails(train)
 							
 							return (
 								<g
 									key={train.trainId}
 									onMouseEnter={() => setHoveredTrain(train.trainId)}
 									onMouseLeave={() => setHoveredTrain(null)}
+								onClick={() => trainDetails && setSelectedTrain(trainDetails)}
+								style={{ cursor: trainDetails ? 'pointer' : 'default' }}
 								>
 									{segments.map((seg, i) => {
 										// Check if this segment passes through a disruption using history data
@@ -527,18 +749,21 @@ export default function TimeDistanceChart({ title, stations, trains, snapshot, v
 										<g>
 											<rect
 												x={segments[0].x1 - 6}
-												y={segments[0].y1 - 26}
-												width={180}
-												height={delay > 0 ? 36 : 22}
+												y={segments[0].y1 - 32}
+												width={200}
+												height={delay > 0 ? 42 : 28}
 												rx={4}
 												fill="#fff"
 												stroke="#cbd5e1"
 											/>
-											<text x={segments[0].x1 + 6} y={segments[0].y1 - 11} className="text-[11px] font-semibold fill-slate-800">
+											<text x={segments[0].x1 + 6} y={segments[0].y1 - 17} className="text-[11px] font-semibold fill-slate-800">
 												{train.trainId} ({train.trainType})
 											</text>
+											<text x={segments[0].x1 + 6} y={segments[0].y1 - 5} className="text-[10px] font-medium fill-slate-600">
+												{direction === 'upline' ? 'Upline' : 'Downline'} • {direction === 'upline' ? 'BPL → ET' : 'ET → BPL'}
+											</text>
 											{delay > 0 && (
-												<text x={segments[0].x1 + 6} y={segments[0].y1 + 4} className="text-[10px] font-medium fill-red-600">
+												<text x={segments[0].x1 + 6} y={segments[0].y1 + 8} className="text-[10px] font-medium fill-red-600">
 													Delay: {delay.toFixed(1)} min
 												</text>
 											)}
@@ -576,12 +801,20 @@ export default function TimeDistanceChart({ title, stations, trains, snapshot, v
 
 			<div className="mt-3 flex flex-wrap gap-4 text-sm justify-center">
 				<div className="flex items-center gap-2">
-					<span className="h-1.5 w-8 rounded-full" style={{ backgroundColor: trainTypeDefaults.Passenger }} />
-					<span className="text-slate-700">Passenger (fast)</span>
+					<span className="h-1.5 w-8 rounded-full" style={{ backgroundColor: downlineColors.Passenger }} />
+					<span className="text-slate-700">Downline Passenger (solid)</span>
 				</div>
 				<div className="flex items-center gap-2">
-					<span className="h-1.5 w-8 rounded-full" style={{ backgroundColor: trainTypeDefaults.Freight }} />
-					<span className="text-slate-700">Freight (slow)</span>
+					<span className="h-1.5 w-8 rounded-full" style={{ backgroundColor: uplineColors.Passenger }} />
+					<span className="text-slate-700">Upline Passenger (solid)</span>
+				</div>
+				<div className="flex items-center gap-2">
+					<span className="h-1.5 w-8 border-t-2 border-dashed" style={{ borderColor: downlineColors.Freight }} />
+					<span className="text-slate-700">Downline Freight (dashed)</span>
+				</div>
+				<div className="flex items-center gap-2">
+					<span className="h-1.5 w-8 border-t-2 border-dashed" style={{ borderColor: uplineColors.Freight }} />
+					<span className="text-slate-700">Upline Freight (dashed)</span>
 				</div>
 				<div className="flex items-center gap-2">
 					<span className="h-0.5 w-8 border-t border-dashed border-slate-500" />
@@ -594,6 +827,187 @@ export default function TimeDistanceChart({ title, stations, trains, snapshot, v
 				<div className="flex items-center gap-2">
 					<span className="h-3 w-3 rounded-full bg-emerald-200 border-2 border-emerald-600" />
 					<span className="text-slate-700">Prioritization decision</span>
+				</div>
+			</div>
+
+			{/* Train Details Modal */}
+			{selectedTrain && (
+				<div
+					className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+					onClick={() => setSelectedTrain(null)}
+				>
+					<div
+						className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<TrainDetailsModal details={selectedTrain} onClose={() => setSelectedTrain(null)} />
+					</div>
+				</div>
+			)}
+		</div>
+	)
+}
+
+// Modal component for train details
+const TrainDetailsModal: React.FC<{
+	details: TrainDetails
+	onClose: () => void
+}> = ({ details, onClose }) => {
+	return (
+		<div className="p-6">
+			<div className="flex items-start justify-between mb-6">
+				<div>
+					<div className="flex items-center gap-3 mb-2">
+						<h2 className="text-2xl font-bold text-slate-900">{details.train.trainId}</h2>
+						{details.runtime.delayMin > 10 && (
+							<span className="px-3 py-1 text-xs font-semibold bg-red-100 text-red-700 rounded-full">CRITICAL</span>
+						)}
+					</div>
+					<div className="text-lg font-semibold text-slate-800">{details.trainName}</div>
+					<div className="flex items-center gap-2 text-sm text-slate-600 mt-1">
+						<span className="w-2 h-2 rounded-full bg-blue-500" />
+						<span>{details.train.trainType}</span>
+						<span className="text-slate-400">•</span>
+						<span>{details.direction === 'upline' ? 'Upline' : 'Downline'}</span>
+					</div>
+				</div>
+				<button
+					onClick={onClose}
+					className="text-slate-400 hover:text-slate-600 text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100"
+				>
+					×
+				</button>
+			</div>
+
+			{/* Key metrics */}
+			<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+				<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+					<div className="text-xs text-slate-500 uppercase mb-1">Delay</div>
+					<div
+						className={`text-2xl font-bold ${
+							details.runtime.delayMin > 10 ? 'text-red-600' : details.runtime.delayMin > 5 ? 'text-orange-600' : 'text-green-600'
+						}`}
+					>
+						{details.runtime.delayMin > 0 ? `${details.runtime.delayMin.toFixed(1)} min` : 'On Time'}
+					</div>
+				</div>
+				<div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+					<div className="text-xs text-blue-600 uppercase mb-1">Throughput</div>
+					<div className="text-2xl font-bold text-blue-700">{details.throughput.toFixed(1)} km/h</div>
+				</div>
+				<div className="bg-green-50 rounded-lg p-4 border border-green-200">
+					<div className="text-xs text-green-600 uppercase mb-1">Accuracy</div>
+					<div className="text-2xl font-bold text-green-700">{details.accuracy.toFixed(1)}%</div>
+				</div>
+				<div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+					<div className="text-xs text-purple-600 uppercase mb-1">Avg Speed</div>
+					<div className="text-2xl font-bold text-purple-700">{details.avgSpeed.toFixed(0)} km/h</div>
+				</div>
+			</div>
+
+			{/* Route info */}
+			<div className="mb-6">
+				<h4 className="text-sm font-semibold text-slate-700 uppercase mb-3">Train Route</h4>
+				<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+					<div className="flex items-center justify-between mb-4">
+						<div className="text-center flex-1">
+							<div className="text-xs text-slate-500 uppercase mb-1">From</div>
+							<div className="font-semibold text-slate-900">{details.originStation?.name || 'N/A'}</div>
+							<div className="text-xs text-slate-600">{details.originStation?.code || ''}</div>
+						</div>
+						<div className="text-2xl text-slate-400 mx-4">→</div>
+						<div className="text-center flex-1">
+							<div className="text-xs text-slate-500 uppercase mb-1">To</div>
+							<div className="font-semibold text-slate-900">{details.destStation?.name || 'N/A'}</div>
+							<div className="text-xs text-slate-600">{details.destStation?.code || ''}</div>
+						</div>
+					</div>
+
+					{/* Progress */}
+					<div className="mb-4">
+						<div className="text-[10px] text-slate-500 uppercase mb-1.5">Section Progress</div>
+						<div className="w-full bg-slate-200 rounded-full h-2 mb-1.5">
+							<div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${details.sectionProgress}%` }}></div>
+						</div>
+						<div className="text-xs text-slate-700 flex items-center gap-1">
+							<span>📍</span>
+							<span>
+								Section {details.currentSection} of {details.totalSections}
+							</span>
+						</div>
+					</div>
+
+					{/* Route stations list */}
+					<div className="space-y-2 mt-4 pt-4 border-t border-slate-200 max-h-56 overflow-y-auto">
+						<div className="text-xs text-slate-500 uppercase mb-2">Route Stations</div>
+						{details.routeStations.map((st, idx) => {
+							const delay = st.actualTime !== undefined ? st.actualTime - st.scheduledTime : null
+							return (
+								<div key={st.code + idx} className="flex items-center justify-between text-xs py-1 px-2 hover:bg-white rounded">
+									<div className="flex items-center gap-2">
+										<span className="text-slate-400">{idx + 1}.</span>
+										<span className="font-medium text-slate-700">{st.name}</span>
+										<span className="text-slate-500">({st.code})</span>
+									</div>
+									<div className="flex items-center gap-3">
+										<span className="text-slate-500">Sch: {formatTime(st.scheduledTime)}</span>
+										{st.actualTime !== undefined && (
+											<span className={`font-medium ${delay && delay > 5 ? 'text-red-600' : 'text-green-600'}`}>
+												Act: {formatTime(st.actualTime)}
+												{delay !== null && delay > 0 && ` (+${delay.toFixed(0)}m)`}
+											</span>
+										)}
+									</div>
+								</div>
+							)
+						})}
+					</div>
+				</div>
+			</div>
+
+			{/* Freight info */}
+			{details.train.trainType === 'Freight' && details.freightCargo && (
+				<div className="mb-6">
+					<h4 className="text-sm font-semibold text-slate-700 uppercase mb-3">Freight Information</h4>
+					<div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+						<div className="flex items-center gap-3">
+							<span className="text-3xl">🚚</span>
+							<div>
+								<div className="text-xs text-purple-600 uppercase mb-1">Cargo Type</div>
+								<div className="text-lg font-bold text-purple-900">{details.freightCargo}</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Additional details */}
+			<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+				<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+					<div className="text-xs text-slate-500 uppercase mb-2">Status</div>
+					<div
+						className={`font-semibold capitalize ${
+							details.runtime.status === 'running'
+								? 'text-green-600'
+								: details.runtime.status === 'halted'
+								? 'text-yellow-600'
+								: 'text-gray-600'
+						}`}
+					>
+						{details.runtime.status === 'running' ? '▶ Running' : details.runtime.status === 'halted' ? '⏸ Halted' : '✓ Completed'}
+					</div>
+				</div>
+				<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+					<div className="text-xs text-slate-500 uppercase mb-2">Distance</div>
+					<div className="font-semibold text-slate-900">{details.runtime.distanceKm.toFixed(1)} km</div>
+				</div>
+				<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+					<div className="text-xs text-slate-500 uppercase mb-2">Current Speed</div>
+					<div className="font-semibold text-blue-600">{details.runtime.currentSpeedKmph.toFixed(0)} km/h</div>
+				</div>
+				<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+					<div className="text-xs text-slate-500 uppercase mb-2">ETA</div>
+					<div className="font-semibold text-indigo-700">{details.eta > 0 ? formatTime(details.eta) : 'N/A'}</div>
 				</div>
 			</div>
 		</div>

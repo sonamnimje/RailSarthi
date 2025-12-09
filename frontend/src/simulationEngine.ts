@@ -218,6 +218,30 @@ export const createSimulationEngine = (config: EngineConfig) => {
 		runtime.history = clampHistory([...runtime.history, point])
 	}
 
+	const isSegmentBlockedByDisruption = (
+		currentKm: number,
+		targetStationCode: string,
+		simTimeMin: number
+	) => {
+		const targetKm = getDistanceForStation(config.stations, targetStationCode)
+		const segMin = Math.min(currentKm, targetKm)
+		const segMax = Math.max(currentKm, targetKm)
+
+		return state.disruptions.some((d) => {
+			// time window check
+			const inWindow = simTimeMin >= d.startAtMin && simTimeMin <= d.startAtMin + d.durationMin
+			if (!inWindow) return false
+
+			const startDist = getDistanceForStation(config.stations, d.startStation)
+			const endDist = getDistanceForStation(config.stations, d.endStation)
+			const disMin = Math.min(startDist, endDist)
+			const disMax = Math.max(startDist, endDist)
+
+			// segment overlaps disrupted section
+			return segMax >= disMin && segMin <= disMax
+		})
+	}
+
 	const advanceTrain = (
 		runtime: TrainRuntime,
 		trainCfg: TrainConfig,
@@ -231,6 +255,19 @@ export const createSimulationEngine = (config: EngineConfig) => {
 			const nextSegment = trainCfg.stations[runtime.segmentIndex + 1]
 			if (!nextSegment) {
 				runtime.status = 'completed'
+				runtime.currentSpeedKmph = 0
+				addHistoryPoint(runtime, snapshotTimeMin - remaining + deltaMin)
+				return
+			}
+
+			// Block movement if the next segment is under active disruption
+			const blocked = isSegmentBlockedByDisruption(
+				runtime.distanceKm,
+				nextSegment.stationCode,
+				state.simTimeMin
+			)
+			if (blocked) {
+				runtime.status = 'halted'
 				runtime.currentSpeedKmph = 0
 				addHistoryPoint(runtime, snapshotTimeMin - remaining + deltaMin)
 				return
