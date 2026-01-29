@@ -26,4 +26,5 @@ matplotlib==3.8.4
 PyPDF2==3.0.1
 Pillow==10.4.0
 pytesseract==0.3.10
+scikit-learn==1.5.2
 
