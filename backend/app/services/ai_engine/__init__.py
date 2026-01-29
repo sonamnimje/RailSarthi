@@ -1,5 +1,5 @@
 """
-AI Engine for RailAnukriti - Smart Train Traffic Optimizer
+AI Engine for RailSarthi - Smart Train Traffic Optimizer
 Provides conflict detection, resolution recommendations, and learning capabilities.
 """
 from .recommendation_engine import RecommendationEngine

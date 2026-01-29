@@ -32,7 +32,7 @@ except Exception:
 def create_app() -> FastAPI:
 
 	app = FastAPI(
-		title="RailAnukriti Backend",
+		title="RailSarthi Backend",
 		description="AI-powered smart train traffic optimizer backend (FastAPI)",
 		version="0.1.0",
 	)
@@ -172,7 +172,7 @@ def create_app() -> FastAPI:
 
 	@app.get("/")
 	def root() -> dict:
-		return {"message": "RailAnukriti backend is running"}
+		return {"message": "RailSarthi backend is running"}
 
 	return app
 

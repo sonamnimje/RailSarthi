@@ -1017,4 +1017,3 @@ const TrainDetailsModal: React.FC<{
 		</div>
 	)
 }
-

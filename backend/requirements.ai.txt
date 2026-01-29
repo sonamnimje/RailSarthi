@@ -1,4 +1,4 @@
-# AI Engine Dependencies for RailAnukriti
+# AI Engine Dependencies for RailSarthi
 # Install with: pip install -r backend/requirements.ai.txt
 
 # PyTorch and Geometric Deep Learning

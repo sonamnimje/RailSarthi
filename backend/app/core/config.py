@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class Settings:
-	APP_NAME: str = os.getenv("APP_NAME", "RailAnukriti")
+	APP_NAME: str = os.getenv("APP_NAME", "RailSarthi")
 	ENV: str = os.getenv("ENV", "dev")
 	API_PREFIX: str = os.getenv("API_PREFIX", "/api")
 	SECRET_KEY: str = os.getenv("SECRET_KEY", "change-this-secret")

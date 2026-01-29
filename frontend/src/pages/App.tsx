@@ -70,7 +70,7 @@ export default function App() {
 	return (
 		<div className="min-h-full p-6">
 			<header className="flex items-center justify-between">
-				<h1 className="text-2xl font-bold">RailAnukriti</h1>
+				<h1 className="text-2xl font-bold">RailSarthi</h1>
 				<div className="text-sm text-gray-400 flex items-center gap-3">
 					<span>WS: {status}</span>
 					{user ? <span>Signed in as {user.username} ({user.role})</span> : null}

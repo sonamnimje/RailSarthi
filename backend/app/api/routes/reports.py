@@ -1033,7 +1033,7 @@ def export_pdf(report: str = Query("summary"), hours: int = Query(24, ge=1, le=1
     c = canvas.Canvas(buf, pagesize=letter)
     text = c.beginText(40, 750)
     text.setFont('Helvetica', 12)
-    text.textLine('RailAnukriti Reports')
+    text.textLine('RailSarthi Reports')
     text.textLine('')
     if report == 'summary':
         s = summary(hours=hours, db=db)

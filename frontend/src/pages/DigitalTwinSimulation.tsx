@@ -5,6 +5,7 @@ import TrainMap from '../components/TrainMap'
 import TimeDistanceChart from '../components/TimeDistanceChart'
 import ScheduleTimeDistanceChart from '../components/ScheduleTimeDistanceChart'
 import DisruptionController from '../components/DisruptionController'
+import { RealTimeBlockDiagram } from '../components/RealTimeBlockDiagram'
 import {
 	createSimulationEngine,
 	Disruption,
@@ -16,7 +17,6 @@ import {
 import { computeKpis } from '../kpiCalculator'
 import { fetchDigitalTwinScenarios, type WhatIfScenario } from '../lib/api'
 import { analyzePrioritization, type PrioritizationRecommendation } from '../prioritizationAnalyzer'
-import BlockDiagram from '../components/BlockDiagram'
 
 const division = 'ktv_psa' // Division for loading scenarios 
 
@@ -492,9 +492,9 @@ export default function DigitalTwinSimulation() {
 
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 p-6 space-y-6">
+		<div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 p-4 md:p-6 space-y-4 md:space-y-6">
 			{/* Header Section */}
-			<header className="flex flex-wrap items-center justify-between gap-4 mb-2">
+			<header className="flex flex-wrap items-center justify-between gap-3 md:gap-4 mb-2">
 				<div className="flex-1 min-w-0">
 					<h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-1">Kottavalasa → Palasa Digital Twin</h1>
 					<p className="text-sm sm:text-base text-slate-600">
@@ -520,7 +520,7 @@ export default function DigitalTwinSimulation() {
 			</header>
 
 			{/* Live KPI strip */}
-			<section className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3">
+			<section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 md:gap-3">
 				<div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-sm">
 					<div className="text-[11px] uppercase font-semibold text-emerald-700">On-time %</div>
 					<div className="text-2xl font-bold text-emerald-900">{kpis.otpPercent}%</div>
@@ -560,7 +560,7 @@ export default function DigitalTwinSimulation() {
 			</section>
 
 			{/* Secondary live KPI strip */}
-			<section className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3">
+			<section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 md:gap-3">
 				<div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 shadow-sm">
 					<div className="text-[11px] uppercase font-semibold text-sky-700">Throughput</div>
 					<div className="text-lg font-bold text-sky-900">{fmt(throughputPerHour, 1)} trains/hr</div>
@@ -601,10 +601,15 @@ export default function DigitalTwinSimulation() {
 				</div>
 			</section>
 
-			{/* Real-time block diagram */}
-			<BlockDiagram stations={STATIONS} blockStates={snapshot.blockStates} simTimeMin={snapshot.simTimeMin} />
+			{/* Block Diagram Section - At Top */}
+			<section className="space-y-4">
+				<RealTimeBlockDiagram
+					stations={STATIONS}
+					snapshot={snapshot}
+					trains={TRAINS}
+				/>
+			</section>
 
-		
 			{/* Top row: chart left, scenario + KPIs right */}
 			<section className="grid grid-cols-1 xl:grid-cols-4 gap-4">
 				{/* Time-Distance Chart */}

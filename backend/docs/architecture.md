@@ -1,6 +1,6 @@
 **Digital Twin Architecture**
 
-This document describes the digital twin schema, loader, simulation and recommendation components added to RailAnukriti.
+This document describes the digital twin schema, loader, simulation and recommendation components added to RailSarthi.
 
 **Twin Schema (Pydantic)**
 - `Station` : `station_id`, `name`, `lat`, `lon`, `platforms`

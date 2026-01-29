@@ -38,7 +38,7 @@ export default function Layout() {
 							alt="IRCTC Logo" 
 							className="h-10 w-auto sm:h-12 object-contain"
 						/>
-						<span className="text-4xl font-black tracking-tight text-blue-800 sm:text-5xl" style={{ color: '#191970' }}>RailAnukriti</span>
+						<span className="text-4xl font-black tracking-tight text-blue-800 sm:text-5xl" style={{ color: '#191970' }}>RailSarthi</span>
 					</Link>
 					<nav className="hidden items-center gap-2 rounded-full bg-blue-50 px-1.5 py-1 text-3xl font-semibold text-blue-800 shadow-inner md:flex">
 						{navItems.map((item) => (

@@ -558,7 +558,7 @@ export default function ReportsPage() {
 	// Export functions
 	const downloadCSV = () => {
 		const lines: string[] = []
-		lines.push('RailAnukriti Historical Reports & Analytics')
+		lines.push('RailSarthi Historical Reports & Analytics')
 		lines.push(`Generated: ${new Date().toLocaleString()}`)
 		lines.push(`Date Range: ${dateRangePreset === 'custom' ? `${customDateRange.start.toLocaleDateString()} to ${customDateRange.end.toLocaleDateString()}` : dateRangePreset}`)
 		lines.push(`Zone: ${selectedZone || 'All'}`)
@@ -604,7 +604,7 @@ export default function ReportsPage() {
 		const url = URL.createObjectURL(blob)
 		const a = document.createElement('a')
 		a.href = url
-		a.download = `rail-anukriti-reports-${new Date().toISOString().split('T')[0]}.csv`
+		a.download = `railsarthi-reports-${new Date().toISOString().split('T')[0]}.csv`
 		document.body.appendChild(a)
 		a.click()
 		document.body.removeChild(a)
@@ -622,7 +622,7 @@ export default function ReportsPage() {
 			<!doctype html>
 			<html>
 				<head>
-					<title>RailAnukriti Historical Reports & Analytics</title>
+					<title>RailSarthi Historical Reports & Analytics</title>
 					<style>
 						@page { margin: 20mm; }
 						body {

@@ -1,8 +1,8 @@
 # 👉 Live link: https://rail-anukriti-7u8e.vercel.app/
 
 
-# 🚆 RailAnukriti – AI-Powered Smart Train Traffic Optimizer
-RailAnukriti is an AI-powered decision-support system for Indian Railways section controllers.  
+# 🚆 RailSarthi – AI-Powered Smart Train Traffic Optimizer
+RailSarthi is an AI-powered decision-support system for Indian Railways section controllers.  
 It optimizes train precedence, crossings, and platform allocation to maximize throughput and minimize delays.
 
 The system combines Artificial Intelligence (Reinforcement Learning, Graph Neural Networks) and Operations Research (Constraint Optimization) to make fast, explainable, and adaptive scheduling decisions.
@@ -52,7 +52,7 @@ The system combines Artificial Intelligence (Reinforcement Learning, Graph Neura
 
 ## 📂 Repository Structure
 ```text
-RailAnukriti/
+RailSarthi/
 │── backend/
 │   ├── app/
 │   │   ├── main.py                 # FastAPI app factory + routes mount
@@ -146,7 +146,7 @@ npm run dev
 
 ## 🔒 Security & Privacy
 
-RailAnukriti implements enterprise-grade security measures to protect sensitive Indian Railways operational data:
+RailSarthi implements enterprise-grade security measures to protect sensitive Indian Railways operational data:
 
 ### Data Encryption
 
@@ -206,7 +206,7 @@ Every critical action is logged for compliance and accountability:
 
 ## 🤖 AI Explainability
 
-RailAnukriti provides transparent, explainable AI recommendations to build controller trust and enable informed decision-making.
+RailSarthi provides transparent, explainable AI recommendations to build controller trust and enable informed decision-making.
 
 ### How AI Decisions Work
 
@@ -218,7 +218,7 @@ The optimizer uses a multi-factor scoring system that considers:
 4. **Train Priority:** Express trains prioritized over freight during peak hours
 
 
-## 🤝 Team RailAnukriti
+## 🤝 Team RailSarthi
 
 - 🚆 Backend AI/Optimization: Sonam Nimje, Shreya Saraf
 - 🖥 Frontend/UI: Sameeksha Vishwakarma

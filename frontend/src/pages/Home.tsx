@@ -169,7 +169,7 @@ function Home() {
             </h2>
             <div className="w-16 sm:w-20 md:w-24 h-0.5 sm:h-1 bg-gradient-to-r from-blue-600 to-teal-600 mx-auto rounded-full mb-4 sm:mb-6"></div>
             <p className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl text-gray-600 max-w-2xl mx-auto px-4">
-              Discover the powerful capabilities that make RailAnukriti the leading solution for intelligent train traffic management
+              Discover the powerful capabilities that make RailSarthi the leading solution for intelligent train traffic management
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
